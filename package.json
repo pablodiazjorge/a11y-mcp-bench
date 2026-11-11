@@ -1,0 +1,28 @@
+{
+  "name": "a11y-mcp-bench",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A preregistered benchmark and an MCP server: does an accessibility MCP server help a coding agent fix WCAG defects in an Angular app, and at what cost?",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pablodiazjorge/a11y-mcp-bench.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "packageManager": "npm@11.20.0",
+  "workspaces": [
+    "packages/*",
+    "fixtures/*"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ci": "npm run format:check"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}
