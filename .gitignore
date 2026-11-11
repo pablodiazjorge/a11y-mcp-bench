@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+dist/
+out-tsc/
+coverage/
+.angular/
+playwright-report/
+blob-report/
+test-results/
+playwright/.cache/
+__screenshots__/
+*.tsbuildinfo
+
+# Local environment, secrets and per-user agent settings
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

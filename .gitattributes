@@ -1,0 +1,14 @@
+# Every text file is stored and checked out with LF, on every platform.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff2 binary
+*.pdf binary
+
+# Collapsed by default in pull request diffs.
+package-lock.json linguist-generated
