@@ -79,69 +79,169 @@ describe('readPolicy', () => {
 });
 
 describe('lockedVersions', () => {
-  it('lists registry packages once, including nested, scoped and aliased ones', () => {
-    const lock = {
-      packages: {
-        '': { name: 'root', version: '0.0.0' },
-        'packages/server': { name: 'server', version: '1.0.0' },
-        'node_modules/server': { resolved: 'packages/server', link: true },
-        'node_modules/a': {
-          version: '1.0.0',
-          resolved: 'https://registry.npmjs.org/a/-/a-1.0.0.tgz',
-        },
-        'node_modules/b/node_modules/a': { version: '1.0.0' },
-        'node_modules/b/node_modules/@scope/c': {
-          version: '2.1.0',
-          resolved: 'https://registry.npmjs.org/@scope/c/-/c-2.1.0.tgz',
-        },
-        'node_modules/alias': {
-          name: 'real-name',
-          version: '3.0.0',
-          resolved: 'https://registry.npmjs.org/real-name/-/real-name-3.0.0.tgz',
-        },
-        'node_modules/parent/node_modules/bundled': { version: '9.9.9', inBundle: true },
-        'node_modules/broken': {},
+  const lockfile = (packages: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+    lockfileVersion: 3,
+    packages,
+    ...extra,
+  });
+  const tarball = (name: string, version: string) =>
+    `https://registry.npmjs.org/${name}/-/${name.split('/').pop() ?? name}-${version}.tgz`;
+
+  it('lists registry packages once, including nested, scoped, aliased and bundled ones', () => {
+    const lock = lockfile({
+      '': { name: 'root', version: '0.0.0' },
+      'packages/server': { name: 'server', version: '1.0.0' },
+      'node_modules/server': { resolved: 'packages/server', link: true },
+      'node_modules/a': { version: '1.0.0', resolved: tarball('a', '1.0.0') },
+      'node_modules/b/node_modules/a': { version: '1.0.0' },
+      'node_modules/b/node_modules/@scope/c': {
+        version: '2.1.0-rc.1',
+        resolved: tarball('@scope/c', '2.1.0-rc.1'),
       },
-    };
+      'node_modules/alias': {
+        name: 'real-name',
+        version: '3.0.0',
+        resolved: tarball('real-name', '3.0.0'),
+      },
+      'node_modules/parent/node_modules/bundled': { version: '9.9.9', inBundle: true },
+    });
 
     expect(lockedVersions(lock)).toEqual([
       { name: 'a', version: '1.0.0' },
-      { name: '@scope/c', version: '2.1.0' },
+      { name: '@scope/c', version: '2.1.0-rc.1' },
       { name: 'real-name', version: '3.0.0' },
+      { name: 'bundled', version: '9.9.9' },
     ]);
   });
 
   it('rejects a package that does not come from the npm registry', () => {
-    const lock = {
-      packages: {
-        'node_modules/from-git': {
-          version: '1.0.0',
-          resolved: 'git+ssh://git@github.com/owner/repo.git#abc',
-        },
+    const lock = lockfile({
+      'node_modules/from-git': {
+        version: '1.0.0',
+        resolved: 'git+ssh://git@github.com/owner/repo.git#abc',
       },
-    };
+    });
 
     expect(() => lockedVersions(lock)).toThrow(/from-git resolves to git\+ssh/);
   });
 
   it('rejects an entry whose name or version is not the one it downloads', () => {
-    const entry = (fields: Record<string, string>) => ({
-      packages: { 'node_modules/x': { version: '1.0.0', ...fields } },
-    });
+    const entry = (fields: Record<string, string>) =>
+      lockfile({ 'node_modules/x': { version: '1.0.0', ...fields } });
 
+    expect(() => lockedVersions(entry({ resolved: tarball('x', '2.0.0') }))).toThrow(
+      'not to https://registry.npmjs.org/x/-/x-1.0.0.tgz',
+    );
     expect(() =>
-      lockedVersions(entry({ resolved: 'https://registry.npmjs.org/x/-/x-2.0.0.tgz' })),
-    ).toThrow('not to https://registry.npmjs.org/x/-/x-1.0.0.tgz');
-    expect(() =>
-      lockedVersions(
-        entry({ name: 'old-and-safe', resolved: 'https://registry.npmjs.org/x/-/x-1.0.0.tgz' }),
-      ),
+      lockedVersions(entry({ name: 'old-and-safe', resolved: tarball('x', '1.0.0') })),
     ).toThrow(/cannot be checked/);
   });
 
-  it('rejects a lockfile without a packages map', () => {
+  // The first name is a real bypass without this rule: the URL parser reads the backslashes
+  // as slashes, so this check would read the dates of `left-pad` while `npm ci` downloads
+  // `@evil/left-pad`.
+  it.each([
+    ['backslashes', '@evil/x\\..\\left-pad'],
+    ['a parent folder', '@evil/x/../left-pad'],
+    ['only dots', '..'],
+    ['an encoded character', '%2e%2e'],
+    ['a query', 'left-pad?x'],
+    ['a fragment', 'left-pad#x'],
+    ['a space at the end', 'left-pad '],
+    ['a tab inside', 'left\t-pad'],
+    ['three segments', 'a/b/c'],
+    ['an empty scope', '@/left-pad'],
+    ['no characters', ''],
+  ])('rejects a name with %s', (_case, name) => {
+    const lock = lockfile({
+      'node_modules/left-pad': { name, version: '1.3.0', resolved: tarball(name, '1.3.0') },
+    });
+
+    expect(() => lockedVersions(lock)).toThrow(/not a plain package name/);
+  });
+
+  it('accepts plain names, with or without a scope', () => {
+    const names = ['left-pad', 'JSONStream', 'lodash.merge', '@types/node', '@scope/a_b~c'];
+    const packages = Object.fromEntries(
+      names.map((name) => [`node_modules/${name}`, { version: '1.0.0' }]),
+    );
+
+    expect(lockedVersions(lockfile(packages)).map((entry) => entry.name)).toEqual(names);
+  });
+
+  // An entry that this check skipped could still be downloaded. With the first three
+  // lockfiles, a real `npm ci` installed a package that the check had not looked at.
+  it.each<[string, Record<string, unknown>, RegExp]>([
+    [
+      'a registry package without a version',
+      { 'node_modules/x': { resolved: tarball('x', '1.0.0') } },
+      /no plain exact version \(none\)/,
+    ],
+    [
+      'a backslash in the path',
+      { 'node_modules\\x': { version: '1.0.0', resolved: tarball('x', '1.0.0') } },
+      /use "\/" only/,
+    ],
+    [
+      'a package that ships its own npm-shrinkwrap.json',
+      { 'node_modules/x': { version: '1.0.0', hasShrinkwrap: true } },
+      /ships its own npm-shrinkwrap.json/,
+    ],
+    [
+      'a folder nested under a package',
+      { 'node_modules/a/extra/x': { version: '1.0.0' } },
+      /not a plain package name/,
+    ],
+    ['an empty entry', { 'node_modules/x': {} }, /no plain exact version/],
+    [
+      'a range as the version',
+      { 'node_modules/x': { version: '^1.0.0' } },
+      /no plain exact version/,
+    ],
+    ['a tag as the version', { 'node_modules/x': { version: 'latest' } }, /no plain exact version/],
+    [
+      'build metadata in the version',
+      { 'node_modules/x': { version: '1.0.0+build.1' } },
+      /no plain exact version/,
+    ],
+    [
+      'an alias as the version',
+      { 'node_modules/x': { version: 'npm:evil@1.0.0' } },
+      /no plain exact version/,
+    ],
+    ['an entry that is not an object', { 'node_modules/x': '1.0.0' }, /is not an object/],
+    ['a version that is not a string', { 'node_modules/x': { version: 1 } }, /"version" is not/],
+    [
+      'a name that is not a string',
+      { 'node_modules/x': { name: ['x'], version: '1.0.0' } },
+      /"name" is not/,
+    ],
+    [
+      'a tarball that is not a string',
+      { 'node_modules/x': { version: '1.0.0', resolved: false } },
+      /"resolved" is not/,
+    ],
+    ['a link that is not true or false', { 'node_modules/x': { link: 'yes' } }, /"link" is not/],
+    [
+      'a project folder with a tarball',
+      { 'tools/x': { name: 'x', version: '1.0.0', resolved: tarball('x', '1.0.0') } },
+      /not a project folder/,
+    ],
+    [
+      'a folder spelled like node_modules',
+      { 'Node_Modules/x': { name: 'x', version: '1.0.0' } },
+      /not a project folder/,
+    ],
+  ])('rejects %s', (_case, packages, message) => {
+    expect(() => lockedVersions(lockfile(packages))).toThrow(message);
+  });
+
+  it('rejects a lockfile that is not a plain lockfileVersion 3 file', () => {
     expect(() => lockedVersions({ lockfileVersion: 1, dependencies: {} })).toThrow(/packages/);
     expect(() => lockedVersions(null)).toThrow(/packages/);
+    expect(() => lockedVersions({ lockfileVersion: 2, packages: {} })).toThrow(/plain/);
+    expect(() => lockedVersions({ packages: {} })).toThrow(/plain/);
+    expect(() => lockedVersions(lockfile({}, { dependencies: {} }))).toThrow(/plain/);
   });
 });
 
@@ -239,6 +339,14 @@ describe('createRegistryTimes', () => {
     });
     expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(fetchStub.mock.calls[0]?.[0]).toBe('https://registry.npmjs.org/@scope%2Fpkg');
+  });
+
+  it('encodes every slash of a name', async () => {
+    const fetchStub = stubFetch(json({ time: {} }));
+
+    await createRegistryTimes(quick)('a/b/c');
+
+    expect(fetchStub.mock.calls[0]?.[0]).toBe('https://registry.npmjs.org/a%2Fb%2Fc');
   });
 
   it('gives each request a time limit', async () => {
