@@ -1,0 +1,33 @@
+name: PR title
+
+# Separate from CI so that editing the title or the description of a pull request only
+# reruns this check, not the whole build.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: 'pr-title-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check that the title follows Conventional Commits
+        env:
+          # Passed through the environment so the title is never interpolated into the script.
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|chore|ci|test|refactor|perf|build|revert)(\([a-z0-9-]+\))?!?: [^ ].*$'
+          if printf '%s\n' "$TITLE" | grep -Eq "$pattern"; then
+            echo "OK: $TITLE"
+          else
+            echo "The PR title is used as the squash commit message and must follow Conventional Commits:"
+            echo "  type(optional-scope): description"
+            exit 1
+          fi

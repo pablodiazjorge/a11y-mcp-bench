@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+
+  # npm versions change through reviewed pull requests, so version updates are turned off.
+  # Once Dependabot security updates are enabled in the repository settings, they still open
+  # pull requests; this entry gives them a title that passes the title check.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
