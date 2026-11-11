@@ -4,7 +4,6 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['{packages,bench,scripts}/**/*.test.ts'],
-    passWithNoTests: true,
     coverage: {
       provider: 'v8',
       include: ['{packages,bench,scripts}/**/*.ts'],
