@@ -25,7 +25,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:lockfile-age": "node scripts/check-lockfile-age.ts",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage",
+    "check:repo": "node scripts/check-repo.ts",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run check:repo && npm run test:coverage",
     "ci:full": "npm run ci"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.14.0",
+    "markdown-it": "15.0.3",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
