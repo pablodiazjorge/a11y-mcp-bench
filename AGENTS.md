@@ -6,13 +6,15 @@ Rules for coding agents that work in this repository. `CLAUDE.md` only imports t
 
 A benchmark that asks one question: does an accessibility MCP server help a coding agent fix WCAG defects in an Angular app, and at what cost? An MCP (Model Context Protocol) server gives an agent extra tools to call. WCAG (Web Content Accessibility Guidelines) is the standard that defines an accessibility defect.
 
-So far the repository holds the tooling, continuous integration (CI) and these rules. The MCP server, the Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
+So far the repository holds the tooling, continuous integration (CI), these rules and the project documents. The MCP server, the Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
 
 ## Map
 
 | Path                                                                     | Content                                                                                                                         |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `LICENSE`                                                                | MIT license                                                                                                                     |
+| `README.md`, `README.es.md`                                              | What the project is, in English and in Spanish                                                                                  |
+| `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`                         | How to propose a change, how to report a vulnerability and what each release changes                                            |
+| `LICENSE`, `LICENSE-CC-BY-4.0`                                           | MIT for the code, CC BY 4.0 for the documents and the results                                                                   |
 | `package.json`, `package-lock.json`                                      | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package) |
 | `.npmrc`, `.nvmrc`                                                       | npm settings, including the minimum age of a dependency; the Node version for local work and the lockfile age job               |
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |
@@ -22,6 +24,7 @@ So far the repository holds the tooling, continuous integration (CI) and these r
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
 | `.github/workflows/`                                                     | CI on every pull request and every push to `main`, and the pull request title check                                             |
 | `.github/dependabot.yml`                                                 | Dependabot settings                                                                                                             |
+| `.github/pull_request_template.md`                                       | The three sections of a pull request description                                                                                |
 
 ## Commands
 
@@ -83,7 +86,7 @@ npm run check:lockfile-age  # only the lockfile age check (needs network access 
 ### Dates
 
 - Do not write in a file the date on which it is published or generated, and add no "last updated" line: the commit, the tag and the release record that.
-- A file can carry the date of a fact that does not depend on when it is committed: the `Decided` field of an ADR (the day the decision was taken, as `YYYY-MM-DD`), the day a cited fact was checked and the time of a benchmark run. The only other date is the copyright year in `LICENSE`.
+- A file can carry the date of a fact that does not depend on when it is committed: the `Decided` field of an ADR (the day the decision was taken, as `YYYY-MM-DD`), the day a cited fact was checked and the time of a benchmark run. The only other dates are the copyright years in `LICENSE` and `LICENSE-CC-BY-4.0`.
 
 ### ADRs
 

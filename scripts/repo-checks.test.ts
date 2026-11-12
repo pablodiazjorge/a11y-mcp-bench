@@ -344,8 +344,19 @@ describe('checkClaudeFile', () => {
 
 describe('checkRequiredFiles', () => {
   it('requires the files that every state of the repository must have', () => {
-    expect(REQUIRED_FILES).toEqual(['AGENTS.md', 'CLAUDE.md', 'LICENSE', 'package.json']);
-    expect(checkRequiredFiles(new Set([...REQUIRED_FILES, 'README.md']))).toEqual([]);
+    expect(REQUIRED_FILES).toEqual([
+      'AGENTS.md',
+      'CHANGELOG.md',
+      'CLAUDE.md',
+      'CONTRIBUTING.md',
+      'LICENSE',
+      'LICENSE-CC-BY-4.0',
+      'README.es.md',
+      'README.md',
+      'SECURITY.md',
+      'package.json',
+    ]);
+    expect(checkRequiredFiles(new Set([...REQUIRED_FILES, 'docs/guide.md']))).toEqual([]);
     expect(report(checkRequiredFiles(new Set(['docs/LICENSE'])))).toEqual(
       REQUIRED_FILES.map((file) => `${file}: missing`),
     );
@@ -381,11 +392,11 @@ describe('checkIgnoredFolders', () => {
 describe('runChecks', () => {
   it('finds nothing in a sound repository', () => {
     const files = published({
-      'AGENTS.md': '# Rules\n',
+      ...Object.fromEntries(REQUIRED_FILES.map((file) => [file, 'Text.\n'])),
       'CLAUDE.md': '@AGENTS.md\n',
-      LICENSE: 'MIT',
       'package.json': '{}',
-      'README.md': '# Title\n',
+      'README.md': '# Title\n\n[Spanish](README.es.md)\n',
+      'README.es.md': '# Titulo\n\n[English](README.md)\n',
     });
 
     expect(runChecks(files, { isIgnored: () => true })).toEqual([]);
@@ -407,13 +418,17 @@ describe('runChecks', () => {
       '.gitignore: dist/ must be ignored',
       '.gitignore: node_modules/ must be ignored',
       'AGENTS.md: missing',
+      'CHANGELOG.md: missing',
       'CLAUDE.md: must only contain @AGENTS.md (instructions live in AGENTS.md)',
+      'CONTRIBUTING.md: missing',
       'LICENSE: missing',
+      'LICENSE-CC-BY-4.0: missing',
       'README.es.md: does not link to README.md',
       'README.es.md:1: em dash (use a comma, a colon or parentheses)',
       'README.md: does not link to README.es.md',
       'README.md:2: links to missing.md, which is not a published file',
       'README.md:3: contains an email address',
+      'SECURITY.md: missing',
       'data.bin: binary file with an unknown extension',
       'package.json: missing',
       'src/a.ts:1: code and configuration must be in English',
