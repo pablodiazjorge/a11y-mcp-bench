@@ -1,0 +1,20 @@
+Copyright (c) 2026 pablodiazjorge
+
+The written content of this repository and the published benchmark results are
+licensed under the Creative Commons Attribution 4.0 International License
+(CC BY 4.0), unless a file states otherwise. This covers the README files,
+AGENTS.md, CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, the guides and ADRs
+under docs/, the preregistrations and the study reports, and the published
+results of each study.
+
+You are free to share and adapt this material for any purpose, including
+commercially, as long as you give appropriate credit, provide a link to the
+license and indicate if changes were made.
+
+The material is offered as is, without warranties of any kind, as section 5 of
+the legal code (Disclaimer of Warranties and Limitation of Liability) states.
+
+Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Source code, tests, task definitions and configuration are licensed separately
+under the MIT License (see LICENSE).

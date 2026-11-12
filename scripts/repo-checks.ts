@@ -35,8 +35,14 @@ export interface CheckOptions {
 /** Files that the repository must publish. Later work adds to this list as the files appear. */
 export const REQUIRED_FILES: readonly string[] = [
   'AGENTS.md',
+  'CHANGELOG.md',
   'CLAUDE.md',
+  'CONTRIBUTING.md',
   'LICENSE',
+  'LICENSE-CC-BY-4.0',
+  'README.es.md',
+  'README.md',
+  'SECURITY.md',
   'package.json',
 ];
 
