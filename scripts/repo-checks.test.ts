@@ -343,13 +343,12 @@ describe('checkClaudeFile', () => {
 });
 
 describe('checkRequiredFiles', () => {
-  it('requires the license and the package manifest', () => {
-    expect(REQUIRED_FILES).toEqual(['LICENSE', 'package.json']);
-    expect(checkRequiredFiles(new Set(['LICENSE', 'package.json', 'README.md']))).toEqual([]);
-    expect(report(checkRequiredFiles(new Set(['docs/LICENSE'])))).toEqual([
-      'LICENSE: missing',
-      'package.json: missing',
-    ]);
+  it('requires the files that every state of the repository must have', () => {
+    expect(REQUIRED_FILES).toEqual(['AGENTS.md', 'CLAUDE.md', 'LICENSE', 'package.json']);
+    expect(checkRequiredFiles(new Set([...REQUIRED_FILES, 'README.md']))).toEqual([]);
+    expect(report(checkRequiredFiles(new Set(['docs/LICENSE'])))).toEqual(
+      REQUIRED_FILES.map((file) => `${file}: missing`),
+    );
   });
 
   it('takes another list', () => {
@@ -381,7 +380,13 @@ describe('checkIgnoredFolders', () => {
 
 describe('runChecks', () => {
   it('finds nothing in a sound repository', () => {
-    const files = published({ LICENSE: 'MIT', 'package.json': '{}', 'README.md': '# Title\n' });
+    const files = published({
+      'AGENTS.md': '# Rules\n',
+      'CLAUDE.md': '@AGENTS.md\n',
+      LICENSE: 'MIT',
+      'package.json': '{}',
+      'README.md': '# Title\n',
+    });
 
     expect(runChecks(files, { isIgnored: () => true })).toEqual([]);
   });
@@ -401,6 +406,7 @@ describe('runChecks', () => {
       '.gitignore: coverage/ must be ignored',
       '.gitignore: dist/ must be ignored',
       '.gitignore: node_modules/ must be ignored',
+      'AGENTS.md: missing',
       'CLAUDE.md: must only contain @AGENTS.md (instructions live in AGENTS.md)',
       'LICENSE: missing',
       'README.es.md: does not link to README.md',

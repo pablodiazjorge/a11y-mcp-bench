@@ -33,7 +33,12 @@ export interface CheckOptions {
 }
 
 /** Files that the repository must publish. Later work adds to this list as the files appear. */
-export const REQUIRED_FILES: readonly string[] = ['LICENSE', 'package.json'];
+export const REQUIRED_FILES: readonly string[] = [
+  'AGENTS.md',
+  'CLAUDE.md',
+  'LICENSE',
+  'package.json',
+];
 
 /** Folders of dependencies and of generated output, which must never be published. */
 export const MUST_BE_IGNORED: readonly string[] = ['node_modules', 'coverage', 'dist'];
