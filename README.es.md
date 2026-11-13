@@ -12,7 +12,7 @@ En sus inicios. Todavía no hay servidor ni banco de pruebas que ejecutar: el re
 
 ## Qué medirá
 
-Un agente de programación recibe una aplicación Angular con un defecto de accesibilidad introducido a propósito (un defecto sembrado) y se le pide que lo arregle. Cada tarea se ejecuta en condiciones que se diferencian en una sola cosa: qué servidor MCP de accesibilidad tiene el agente, si tiene alguno. El primer estudio compara tres: sin servidor, con el servidor de este proyecto y con un servidor de terceros ya existente.
+Un agente de programación recibe una aplicación Angular con un defecto de accesibilidad introducido a propósito (un defecto sembrado) y se le pide que lo arregle. Cada tarea se ejecuta en condiciones que se diferencian en una sola cosa: qué servidor MCP de accesibilidad tiene el agente, si tiene alguno. El primer estudio prevé tres: sin servidor, con el servidor de este proyecto y con un servidor de terceros ya existente.
 
 - **Resultado:** una tarea está resuelta cuando pasa el test de su defecto (que el agente no ve), siguen pasando los tests de regresión y la aplicación sigue compilando. Deciden los tests, no un modelo de lenguaje.
 - **Coste:** tokens, turnos y tiempo de cada ejecución.
@@ -37,6 +37,8 @@ Un agente de programación recibe una aplicación Angular con un defecto de acce
 - **Solo Claude Code hasta la v1.0.0.** Otros agentes pueden llegar después.
 - **Solo páginas locales.** El servidor audita páginas servidas desde la misma máquina.
 
+El [ADR 0001](docs/adr/0001-scope-and-non-goals.md), un registro de decisión de arquitectura, da los motivos y explica por qué el proyecto tiene un servidor propio cuando ya existen otros.
+
 ## Trabajo previo
 
 Comprobado el 12 de noviembre de 2026.
@@ -60,7 +62,7 @@ Comprobado el 12 de noviembre de 2026.
 - [A11y-Bench](https://repositum.tuwien.at/handle/20.500.12708/224566) (Tschoner, 2025): 51 arreglos reales de accesibilidad de repositorios de código abierto; con tres modelos de pesos abiertos (descargables por cualquiera), solo 1 quedó resuelto del todo.
 - [a11y-llm-eval](https://github.com/microsoft/a11y-llm-eval) (Microsoft): mide lo accesible que es el HTML que genera un modelo.
 
-**Qué añadirá este proyecto:** la misma comparación con y sin servidor, con el método fijado y publicado antes de las ejecuciones, sobre el repositorio de una aplicación Angular en lugar de casos de prueba HTML y con defectos elegidos, tras una prueba piloto, para que el agente no los arregle ya casi todos por su cuenta. Como en el caso de AccessLint, el autor escribe también uno de los servidores que mide, así que el método está diseñado para sostenerse sin tener que fiarse de él.
+**Qué añadirá este proyecto:** la misma comparación con y sin servidor, con el método fijado y publicado antes de las ejecuciones, sobre el repositorio de una aplicación Angular en lugar de casos de prueba HTML y con defectos elegidos, tras una prueba piloto, para que el agente no los arregle ya casi todos por su cuenta. Como en el caso de AccessLint, el autor escribe también uno de los servidores que mide, así que el método está diseñado para que haga falta fiarse de él lo menos posible.
 
 ## Desarrollo
 
@@ -75,7 +77,7 @@ Las reglas de un cambio están en [AGENTS.md](AGENTS.md), y la forma de proponer
 
 ## Cómo se construye
 
-El autor decide el alcance y la arquitectura, y deja escrita cada decisión difícil de deshacer como un registro de decisión de arquitectura (ADR). Los agentes de programación (Claude Code) escriben la mayor parte del código y de los documentos, siguiendo las reglas de [AGENTS.md](AGENTS.md).
+El autor decide el alcance y la arquitectura, y deja escrita cada decisión difícil de deshacer como un ADR en [docs/adr/](docs/adr/). Los agentes de programación (Claude Code) escriben la mayor parte del código y de los documentos, siguiendo las reglas de [AGENTS.md](AGENTS.md).
 
 Cada cambio que escribe un agente pasa la puerta local (`npm run ci`) y la CI, y lo revisa otro agente que no lo ha escrito. El autor lee cada diff, hace el commit y fusiona la pull request.
 
