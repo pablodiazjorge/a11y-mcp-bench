@@ -16,7 +16,7 @@ Un agente de programación recibe una aplicación Angular con un defecto de acce
 
 - **Resultado:** una tarea está resuelta cuando pasa el test de su defecto (que el agente no ve), siguen pasando los tests de regresión y la aplicación sigue compilando. Deciden los tests, no un modelo de lenguaje.
 - **Coste:** tokens, turnos y tiempo de cada ejecución.
-- **Método:** las tareas, los criterios de corrección y el análisis se congelan y se publican antes de la primera ejecución (un prerregistro), y el informe se publica sea cual sea el resultado.
+- **Método:** las tareas, los criterios de corrección y el análisis se congelan y se publican antes de la primera ejecución del estudio (un prerregistro), y el informe se publica sea cual sea el resultado. El [ADR 0002](docs/adr/0002-methodology.md) (un registro de decisión de arquitectura) explica por qué.
 
 ## Hoja de ruta
 
@@ -37,7 +37,7 @@ Un agente de programación recibe una aplicación Angular con un defecto de acce
 - **Solo Claude Code hasta la v1.0.0.** Otros agentes pueden llegar después.
 - **Solo páginas locales.** El servidor audita páginas servidas desde la misma máquina.
 
-El [ADR 0001](docs/adr/0001-scope-and-non-goals.md), un registro de decisión de arquitectura, da los motivos y explica por qué el proyecto tiene un servidor propio cuando ya existen otros.
+El [ADR 0001](docs/adr/0001-scope-and-non-goals.md) da los motivos y explica por qué el proyecto tiene un servidor propio cuando ya existen otros.
 
 ## Trabajo previo
 
@@ -62,7 +62,7 @@ Comprobado el 12 de noviembre de 2026.
 - [A11y-Bench](https://repositum.tuwien.at/handle/20.500.12708/224566) (Tschoner, 2025): 51 arreglos reales de accesibilidad de repositorios de código abierto; con tres modelos de pesos abiertos (descargables por cualquiera), solo 1 quedó resuelto del todo.
 - [a11y-llm-eval](https://github.com/microsoft/a11y-llm-eval) (Microsoft): mide lo accesible que es el HTML que genera un modelo.
 
-**Qué añadirá este proyecto:** la misma comparación con y sin servidor, con el método fijado y publicado antes de las ejecuciones, sobre el repositorio de una aplicación Angular en lugar de casos de prueba HTML y con defectos elegidos, tras una prueba piloto, para que el agente no los arregle ya casi todos por su cuenta. Como en el caso de AccessLint, el autor escribe también uno de los servidores que mide, así que el método está diseñado para que haga falta fiarse de él lo menos posible.
+**Qué añadirá este proyecto:** la misma comparación con y sin servidor, con el método fijado y publicado antes de las ejecuciones, sobre el repositorio de una aplicación Angular en lugar de casos de prueba HTML y con defectos elegidos, tras una prueba piloto, para que el agente no los arregle ya casi todos por su cuenta. Como en el caso de AccessLint, el autor escribe también uno de los servidores que mide, así que el método está diseñado para que haga falta fiarse de él lo menos posible: véase el [ADR 0002](docs/adr/0002-methodology.md).
 
 ## Desarrollo
 
