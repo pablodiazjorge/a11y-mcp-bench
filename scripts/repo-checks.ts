@@ -43,6 +43,7 @@ export const REQUIRED_FILES: readonly string[] = [
   'README.es.md',
   'README.md',
   'SECURITY.md',
+  'docs/architecture.md',
   'package.json',
 ];
 

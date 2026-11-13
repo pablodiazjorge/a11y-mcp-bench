@@ -354,6 +354,7 @@ describe('checkRequiredFiles', () => {
       'README.es.md',
       'README.md',
       'SECURITY.md',
+      'docs/architecture.md',
       'package.json',
     ]);
     expect(checkRequiredFiles(new Set([...REQUIRED_FILES, 'docs/guide.md']))).toEqual([]);
@@ -430,6 +431,7 @@ describe('runChecks', () => {
       'README.md:3: contains an email address',
       'SECURITY.md: missing',
       'data.bin: binary file with an unknown extension',
+      'docs/architecture.md: missing',
       'package.json: missing',
       'src/a.ts:1: code and configuration must be in English',
       'src/a.ts:2: contains the local user name',

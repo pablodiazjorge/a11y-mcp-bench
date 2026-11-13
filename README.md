@@ -30,6 +30,8 @@ A coding agent receives an Angular app with one accessibility defect planted on 
 | Harness        | The harness (the program that runs the agent on each task and records the result) and a small trial run (pilot) | [#8](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/8) |
 | Study 1        | Preregistration, runs, report; release v1.0.0                                                                   | [#9](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/9) |
 
+The parts and how they depend on each other are in [docs/architecture.md](docs/architecture.md).
+
 ## What it is not
 
 - **Not a complete WCAG auditor.** Automatic checks find only part of the accessibility problems of a page.

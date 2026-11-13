@@ -16,6 +16,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`                         | How to propose a change, how to report a vulnerability and what each release changes                                            |
 | `LICENSE`, `LICENSE-CC-BY-4.0`                                           | MIT for the code, CC BY 4.0 for the documents and the results                                                                   |
 | `docs/adr/`                                                              | Architecture decision records, one file per decision                                                                            |
+| `docs/architecture.md`                                                   | The parts of the repository, what each may depend on and how the boundaries are checked                                         |
 | `package.json`, `package-lock.json`                                      | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package) |
 | `.npmrc`, `.nvmrc`                                                       | npm settings, including the minimum age of a dependency; the Node version for local work and the lockfile age job               |
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |
@@ -23,6 +24,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
 | `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents                                                           |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
+| `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The module boundaries of ADR 0003 as rules for dependency-cruiser, and the tests that each rule catches a forbidden import      |
 | `.github/workflows/`                                                     | CI on every pull request and every push to `main`, and the pull request title check                                             |
 | `.github/dependabot.yml`                                                 | Dependabot settings                                                                                                             |
 | `.github/pull_request_template.md`                                       | The three sections of a pull request description                                                                                |
@@ -30,11 +32,13 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 ## Commands
 
 ```bash
-npm ci                      # install exactly what the lockfile pins
-npm run ci                  # the local gate: format, lint, types, repository checks, tests with coverage
-npm run ci:full             # the gate as CI runs it on each OS; CI also runs the lockfile age check
-npm run check:repo          # only the repository checks
-npm run check:lockfile-age  # only the lockfile age check (needs network access to the npm registry)
+npm ci                       # install exactly what the lockfile pins
+npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, tests with coverage
+npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
+npm run check:repo           # only the repository checks
+npm run check:deps           # only the module boundaries (the rules in .dependency-cruiser.js)
+npm run check:lockfile-age   # only the lockfile age check (needs network access to the npm registry)
+npm run --silent deps:graph  # print the import graph of the code as a Mermaid diagram
 ```
 
 ## Who does what
