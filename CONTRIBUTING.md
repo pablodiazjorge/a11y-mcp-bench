@@ -4,7 +4,7 @@ The project is at an early stage, so the most useful contribution today is an is
 
 ## Before you open a pull request
 
-Open an issue first and wait for an answer. Each study will be preregistered: its tasks, grading and analysis are frozen before the first run, so a change that looks harmless can invalidate it. An issue settles the scope before you spend time.
+Open an issue first and wait for an answer. Each study will be preregistered: its tasks, grading and analysis are frozen before the first study run, so a change that looks harmless can invalidate it. An issue settles the scope before you spend time.
 
 ## Set up
 
