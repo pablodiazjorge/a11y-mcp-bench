@@ -12,7 +12,7 @@ Early. There is no server or benchmark to run yet: the repository holds the tool
 
 ## What it will measure
 
-A coding agent receives an Angular app with one accessibility defect planted on purpose (a seeded defect) and is asked to fix it. Each task runs under conditions that differ in one thing: which accessibility MCP server the agent has, if any. The first study compares three: no server, the server of this project and an existing third-party server.
+A coding agent receives an Angular app with one accessibility defect planted on purpose (a seeded defect) and is asked to fix it. Each task runs under conditions that differ in one thing: which accessibility MCP server the agent has, if any. The first study plans three: no server, the server of this project and an existing third-party server.
 
 - **Outcome:** a task is solved when the test for its defect, which the agent cannot see, passes, the regression tests still pass and the app still builds. Tests decide, not a language model.
 - **Cost:** tokens, turns and time for each run.
@@ -37,6 +37,8 @@ A coding agent receives an Angular app with one accessibility defect planted on 
 - **Only Claude Code until v1.0.0.** Other agents may come later.
 - **Only local pages.** The server audits pages served from the same machine.
 
+[ADR 0001](docs/adr/0001-scope-and-non-goals.md), an architecture decision record, gives the reasons and explains why the project has a server of its own when others exist.
+
 ## Prior work
 
 Checked on 2026-11-12.
@@ -60,7 +62,7 @@ Checked on 2026-11-12.
 - [A11y-Bench](https://repositum.tuwien.at/handle/20.500.12708/224566) (Tschoner, 2025): 51 real accessibility fixes from open-source repositories; with three open-weight models (models anyone can download), only 1 was fully resolved.
 - [a11y-llm-eval](https://github.com/microsoft/a11y-llm-eval) (Microsoft): measures how accessible the HTML that models generate is.
 
-**What this project will add:** the same with-and-without comparison, with the method fixed and published before the runs, on the repository of an Angular app instead of HTML test cases, and with defects chosen, after a pilot, so that the agent alone does not already fix nearly all of them. As with AccessLint, the author also writes one of the servers he measures, so the method is designed to hold without trusting him.
+**What this project will add:** the same with-and-without comparison, with the method fixed and published before the runs, on the repository of an Angular app instead of HTML test cases, and with defects chosen, after a pilot, so that the agent alone does not already fix nearly all of them. As with AccessLint, the author also writes one of the servers he measures, so the method is designed to limit how far a reader has to trust him.
 
 ## Development
 
@@ -75,7 +77,7 @@ The rules for a change are in [AGENTS.md](AGENTS.md), and the way to propose one
 
 ## How this is built
 
-The author decides the scope and the architecture, and writes down each decision that is hard to undo as an architecture decision record (ADR). Coding agents (Claude Code) write most of the code and the documents, under the rules in [AGENTS.md](AGENTS.md).
+The author decides the scope and the architecture, and writes down each decision that is hard to undo as an ADR in [docs/adr/](docs/adr/). Coding agents (Claude Code) write most of the code and the documents, under the rules in [AGENTS.md](AGENTS.md).
 
 Every change that an agent writes passes the local gate (`npm run ci`) and CI, and another agent that did not write it reviews it. The author reads each diff, makes the commit and merges the pull request.
 
