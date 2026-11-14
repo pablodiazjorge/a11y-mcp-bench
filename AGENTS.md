@@ -22,7 +22,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |
 | `tsconfig.base.json`, `tsconfig.json`                                    | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                |
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
-| `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents                                                           |
+| `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
 | `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The module boundaries of ADR 0003 as rules for dependency-cruiser, and the tests that each rule catches a forbidden import      |
 | `.github/workflows/`                                                     | CI on every pull request and every push to `main`, and the pull request title check                                             |
@@ -71,7 +71,7 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
 - `.npmrc` stays plain ASCII: comment lines and `key=value` lines with a lowercase key and a bare value (letters, digits, spaces and `_ @ . / , -` only: no quotes, no URLs, no `${VAR}`). The lockfile age check reads it strictly and fails on anything else.
 - Dependencies come only from the npm registry. The lockfile age check fails on a dependency from git, a URL or a tarball, on a package that ships its own `npm-shrinkwrap.json`, on a workspace folder with `node_modules` in its name, and on a folder outside the repository, such as a `file:../lib` dependency.
   - The check cannot tell a `file:` dependency on a folder inside the repository from a workspace, so do not add one.
-  - The check reads the lockfile, not the folders, so it misses a symlink in the repository to a folder outside it: do not commit one.
+  - The check reads the lockfile, not the folders, so it cannot see where a symlink leads. Do not commit a symlink: `npm run check:repo` fails on one.
 
 ### TypeScript
 

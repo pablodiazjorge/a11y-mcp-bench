@@ -19,7 +19,7 @@ import {
 } from './repo-checks.ts';
 
 // The checks for personal data and secrets have their own file of tests:
-// repo-checks.personal-data.test.ts.
+// repo-checks.personal-data.test.ts. So do the git modes: repo-checks.links.test.ts.
 
 // The data that the checks look for is put together from parts, here and in every test, so
 // that this file does not contain it and passes the checks itself.
@@ -85,7 +85,7 @@ describe('readPublishedFiles', () => {
   const read = (path: string) => disk[path];
 
   it('keeps the text of text files and only the path of known binary files', () => {
-    const files = readPublishedFiles(['notes.txt', 'b.txt', 'a.PNG'], new Set(), read);
+    const files = readPublishedFiles(['notes.txt', 'b.txt', 'a.PNG'], new Set(), read, []);
 
     expect([...files.paths]).toEqual(['a.PNG', 'b.txt', 'notes.txt']);
     expect([...files.texts]).toEqual([
@@ -96,7 +96,7 @@ describe('readPublishedFiles', () => {
   });
 
   it('leaves out a tracked file that was deleted from the working tree', () => {
-    const files = readPublishedFiles(['b.txt', 'gone.txt'], new Set(['gone.txt']), read);
+    const files = readPublishedFiles(['b.txt', 'gone.txt'], new Set(['gone.txt']), read, []);
 
     expect([...files.paths]).toEqual(['b.txt']);
     expect(files.problems).toEqual([]);
@@ -104,7 +104,7 @@ describe('readPublishedFiles', () => {
 
   it('reports a file that it cannot check, and never skips it', () => {
     const listed = ['b.txt', 'vendor/sub', 'locked.txt', 'data.bin'];
-    const files = readPublishedFiles(listed, new Set(), read);
+    const files = readPublishedFiles(listed, new Set(), read, []);
 
     expect([...files.paths]).toEqual(['b.txt', 'data.bin', 'locked.txt', 'vendor/sub']);
     expect(report(files.problems)).toEqual([
