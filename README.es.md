@@ -87,7 +87,7 @@ Cada cambio que escribe un agente pasa la puerta local (`npm run ci`) y la CI, y
 
 - Todavía no hay ningún resultado, así que nada de lo que hay aquí dice si un servidor ayuda.
 - Un banco de pruebas con una sola aplicación, un solo agente y defectos sembrados dice poco de otros frameworks, de otros agentes o de los defectos que tienen los proyectos reales.
-- La comprobación de datos personales se basa en patrones que pueden dejar pasar algún caso, y la que impide versiones de dependencias publicadas hace menos de siete días no detecta una dependencia `file:` a una carpeta. `AGENTS.md` y las pull requests que añadieron cada comprobación describen sus huecos conocidos.
+- La comprobación de datos personales se basa en patrones que pueden dejar pasar algún caso, y la que impide versiones de dependencias publicadas hace menos de siete días no rechaza una dependencia `file:` que apunte a una carpeta dentro del repositorio. `AGENTS.md` y las pull requests que añadieron cada comprobación describen sus huecos conocidos.
 
 ## Licencia
 

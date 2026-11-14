@@ -69,7 +69,9 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
   - `npm ci` ignores `min-release-age` and installs what the lockfile pins, so `npm run check:lockfile-age` checks the lockfile. CI runs it. Run it too when a change touches `package-lock.json`: `npm run ci` does not.
   - To exempt a package, add a `min-release-age-exclude[]=<name>` line to `.npmrc`, only with the author's approval, and give the reason in the pull request.
 - `.npmrc` stays plain ASCII: comment lines and `key=value` lines with a lowercase key and a bare value (letters, digits, spaces and `_ @ . / , -` only: no quotes, no URLs, no `${VAR}`). The lockfile age check reads it strictly and fails on anything else.
-- Dependencies come only from the npm registry. The lockfile age check fails on a dependency from git, a URL or a tarball, on a package that ships its own `npm-shrinkwrap.json`, and on a workspace folder with `node_modules` in its name. It does not catch a `file:` dependency on a folder, so do not add one.
+- Dependencies come only from the npm registry. The lockfile age check fails on a dependency from git, a URL or a tarball, on a package that ships its own `npm-shrinkwrap.json`, on a workspace folder with `node_modules` in its name, and on a folder outside the repository, such as a `file:../lib` dependency.
+  - The check cannot tell a `file:` dependency on a folder inside the repository from a workspace, so do not add one.
+  - The check reads the lockfile, not the folders, so it misses a symlink in the repository to a folder outside it: do not commit one.
 
 ### TypeScript
 

@@ -6,6 +6,7 @@ import {
   youngVersions,
   type PublishTimes,
 } from './check-lockfile-age.ts';
+import { lockfile, tarball } from './check-lockfile-age.fixtures.ts';
 
 const DAY_MS = 86_400_000;
 const NOW = Date.parse('2026-11-11T12:00:00.000Z');
@@ -79,14 +80,6 @@ describe('readPolicy', () => {
 });
 
 describe('lockedVersions', () => {
-  const lockfile = (packages: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
-    lockfileVersion: 3,
-    packages,
-    ...extra,
-  });
-  const tarball = (name: string, version: string) =>
-    `https://registry.npmjs.org/${name}/-/${name.split('/').pop() ?? name}-${version}.tgz`;
-
   it('lists registry packages once, including nested, scoped, aliased and bundled ones', () => {
     const lock = lockfile({
       '': { name: 'root', version: '0.0.0' },
@@ -185,7 +178,7 @@ describe('lockedVersions', () => {
     [
       'a package that ships its own npm-shrinkwrap.json',
       { 'node_modules/x': { version: '1.0.0', hasShrinkwrap: true } },
-      /ships its own npm-shrinkwrap.json/,
+      /x claims an npm-shrinkwrap.json/,
     ],
     [
       'a folder nested under a package',
@@ -222,16 +215,6 @@ describe('lockedVersions', () => {
       /"resolved" is not/,
     ],
     ['a link that is not true or false', { 'node_modules/x': { link: 'yes' } }, /"link" is not/],
-    [
-      'a project folder with a tarball',
-      { 'tools/x': { name: 'x', version: '1.0.0', resolved: tarball('x', '1.0.0') } },
-      /not a project folder/,
-    ],
-    [
-      'a folder spelled like node_modules',
-      { 'Node_Modules/x': { name: 'x', version: '1.0.0' } },
-      /not a project folder/,
-    ],
   ])('rejects %s', (_case, packages, message) => {
     expect(() => lockedVersions(lockfile(packages))).toThrow(message);
   });

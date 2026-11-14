@@ -33,6 +33,15 @@ const PLAIN_NAME = /^(?:@[\w~-][\w.~-]*\/)?[\w~-][\w.~-]*$/;
 // An exact version, with or without a pre-release part and without build metadata, which
 // npm drops when it publishes. Not a range, a tag or an alias.
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/;
+// A folder inside the repository, as npm writes it in a lockfile: relative, separated by "/"
+// and already normalized. Each segment starts with a letter, a digit, `_`, `-` or `~`, so
+// `.` and `..` cannot leave the repository, and nothing reads as a drive, a root or a share.
+const PROJECT_FOLDER = /^[\w~-][\w.~-]*(?:\/[\w~-][\w.~-]*)*$/;
+
+/** Tells whether a lockfile path names a folder of the project that npm does not download. */
+function isProjectFolder(path: string): boolean {
+  return PROJECT_FOLDER.test(path) && !/node_modules/i.test(path);
+}
 
 /**
  * Reads `min-release-age` and `min-release-age-exclude` from the text of an .npmrc file.
@@ -112,7 +121,8 @@ function optionalString(
  * Like the .npmrc reader, it does not guess what npm does with an unusual entry. Every entry
  * must have one of the four shapes that this check understands: the root project, a folder of the project
  * (a workspace), a link to such a folder, or a registry package under node_modules. Anything
- * else throws, because npm could still download an entry that this check had skipped.
+ * else throws, because npm could still download an entry that this check had skipped. A folder
+ * or a link that leaves the repository throws too: npm installs it without the registry.
  */
 export function lockedVersions(lock: unknown): LockedVersion[] {
   if (!isRecord(lock) || !isRecord(lock.packages)) {
@@ -122,9 +132,10 @@ export function lockedVersions(lock: unknown): LockedVersion[] {
   if (lock.lockfileVersion !== 3 || lock.dependencies !== undefined) {
     throw new Error('package-lock.json is not a plain lockfileVersion 3 file');
   }
+  const packages = lock.packages;
   const marker = 'node_modules/';
   const seen = new Map<string, LockedVersion>();
-  for (const [path, entry] of Object.entries(lock.packages)) {
+  for (const [path, entry] of Object.entries(packages)) {
     if (!isRecord(entry)) throw new Error(`"${path}" is not an object`);
     const declaredName = optionalString(entry, 'name', path);
     const version = optionalString(entry, 'version', path);
@@ -136,21 +147,54 @@ export function lockedVersions(lock: unknown): LockedVersion[] {
     if (path === '') continue;
     // npm writes "/" on every system, and on Windows it reads "\" as a separator.
     if (path.includes('\\')) throw new Error(`${path}: lockfile paths use "/" only`);
-    // A link is a symlink to a folder of the project, which has its own entry.
-    if (entry.link === true) continue;
+    // npm installs what an npm-shrinkwrap.json pins, and this check cannot see inside a
+    // tarball. A project folder whose entry has `_hasShrinkwrap` makes npm read the file in
+    // the folder, so either flag on any entry fails.
+    if (entry.hasShrinkwrap !== undefined || entry._hasShrinkwrap !== undefined) {
+      throw new Error(`${path} claims an npm-shrinkwrap.json, whose pins cannot be checked`);
+    }
     const start = `/${path}`.lastIndexOf(`/${marker}`);
+    if (entry.link === true) {
+      // A link is a symlink that npm puts in the node_modules folder of the root or of a
+      // folder of the project, the only two places where npm 11 writes one.
+      const parent = path.slice(0, Math.max(start - 1, 0));
+      if (
+        start === -1 ||
+        (parent !== '' && !isProjectFolder(parent)) ||
+        !PLAIN_NAME.test(path.slice(start + marker.length))
+      ) {
+        throw new Error(
+          `${path} is a link that is not a plain package name in the node_modules of the root or of a project folder`,
+        );
+      }
+      if (resolved === undefined) throw new Error(`${path} is a link with no "resolved" folder`);
+      // npm makes the symlink when `resolved` leads to the key of an entry, and it accepts a
+      // key outside the repository, such as the "../local" of a `file:../local` dependency.
+      // npm writes `resolved` already normalized, so this check reads no other spelling.
+      if (!isProjectFolder(resolved)) {
+        throw new Error(`${path} links to "${resolved}", which is not a plain project folder path`);
+      }
+      // `Object.hasOwn`, because a folder may be called `constructor`.
+      const target = Object.hasOwn(packages, resolved) ? packages[resolved] : undefined;
+      if (target === undefined) {
+        throw new Error(`${path} links to "${resolved}", which has no entry in the lockfile`);
+      }
+      if (!isRecord(target) || target.link !== undefined || target.resolved !== undefined) {
+        throw new Error(`${path} links to "${resolved}", whose entry is not a project folder`);
+      }
+      continue;
+    }
     if (start === -1) {
       // A folder of the project. npm downloads nothing for it, so it has no tarball, and
       // its path is not another spelling of node_modules.
       if (resolved !== undefined || /node_modules/i.test(path)) {
         throw new Error(`${path} is not a project folder that this check can skip`);
       }
+      // npm writes a folder outside the repository as a path that starts with "..".
+      if (!isProjectFolder(path)) {
+        throw new Error(`${path} is not a plain folder path inside the repository`);
+      }
       continue;
-    }
-    // npm installs what the npm-shrinkwrap.json of a package pins, and this check cannot
-    // see inside a tarball.
-    if (entry.hasShrinkwrap !== undefined || entry._hasShrinkwrap !== undefined) {
-      throw new Error(`${path} ships its own npm-shrinkwrap.json, whose pins cannot be checked`);
     }
     // From here on, a registry package. A bundled one (`inBundle`) is checked like the rest:
     // when its parent does not really bundle it, npm takes it from the registry.
