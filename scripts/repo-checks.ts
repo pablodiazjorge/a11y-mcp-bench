@@ -21,9 +21,27 @@ export interface PublishedFiles {
   paths: ReadonlySet<string>;
   /** The text of each published file. A binary file has a path but no text. */
   texts: ReadonlyMap<string, string>;
-  /** Files whose content could not be checked, found while the files were read. */
+  /**
+   * Paths that are not regular files, and files whose content could not be checked, found
+   * while the files were read.
+   */
   problems: readonly Problem[];
 }
+
+/** One entry of the git index, as `git ls-files --stage -z` prints it. */
+export interface IndexEntry {
+  /** The git mode, such as `100644` for a regular file or `120000` for a symbolic link. */
+  mode: string;
+  /** 0 for a path without a merge conflict; 1 to 3 for its versions in a conflict. */
+  stage: number;
+  path: string;
+}
+
+/**
+ * What a path is on disk: the bytes of a file, 'folder', the target of a symbolic link (as
+ * bytes, so that its text is checked too) or undefined when the path cannot be read.
+ */
+export type DiskEntry = Uint8Array | 'folder' | { link: Uint8Array } | undefined;
 
 export interface CheckOptions {
   /** Name of the local user account. Left out on CI, where the account has a generic name. */
@@ -115,11 +133,53 @@ export function decodeText(bytes: Uint8Array): string | undefined {
   return new TextDecoder().decode(bytes);
 }
 
+// The object name has 40 hex characters (SHA-1), or 64 in a repository that uses SHA-256. The
+// path is everything after the tab, and may hold a tab or a line break itself.
+const INDEX_ENTRY = /^([0-7]{6}) (?:[0-9a-f]{40}|[0-9a-f]{64}) ([0-3])\t([^\0]+)$/;
+
+/**
+ * Reads the output of `git ls-files --stage -z`. It throws on an entry it cannot read and
+ * never skips one: the modes guard against links out of the repository.
+ */
+export function parseIndexEntries(output: string): IndexEntry[] {
+  if (output === '') return [];
+  if (!output.endsWith('\0')) {
+    throw new Error('git ls-files --stage: the last entry does not end with a null byte');
+  }
+  return output
+    .slice(0, -1)
+    .split('\0')
+    .map((entry, index) => {
+      const match = INDEX_ENTRY.exec(entry);
+      if (match === null) {
+        throw new Error(`git ls-files --stage: entry ${String(index + 1)} cannot be read`);
+      }
+      return { mode: match[1] ?? '', stage: Number(match[2]), path: match[3] ?? '' };
+    });
+}
+
+// A regular file, executable or not. Any other mode is reported.
+const REGULAR_FILE_MODES = new Set(['100644', '100755']);
+const LINK_MESSAGE =
+  'is a symbolic link, which may lead outside the repository: npm follows one under a workspace folder';
+
+function modeProblem(mode: string): string | undefined {
+  if (REGULAR_FILE_MODES.has(mode)) return undefined;
+  if (mode === '120000') return LINK_MESSAGE;
+  if (mode === '160000') return 'is a submodule, which this check does not read';
+  return `is not a regular file (git mode ${mode})`;
+}
+
 /**
  * Builds the published files from the paths that git lists. `deleted` holds the tracked
  * files that are gone from the working tree, which are left out: deleting them is the
- * change. `read` returns the bytes of a file, 'folder' for a path that is a folder and
- * undefined for a path that it cannot read.
+ * change. `read` says what a path is on disk. `index` holds the entries of the git index.
+ *
+ * A path that is not a regular file is reported once. The index says what a tracked path is,
+ * because a checkout without symbolic links writes a link as a plain file that holds its target.
+ * Every index entry is checked, including each version of a path in a merge conflict and a path
+ * whose file is gone from the disk: that entry stays in the index until it is removed.
+ * The disk says what an untracked path is, and catches a tracked path replaced by a link.
  *
  * A file that cannot be checked is a problem, not a file to skip: a folder, which git lists
  * as one path when it is another repository; an unreadable path; or bytes that are not text
@@ -128,24 +188,39 @@ export function decodeText(bytes: Uint8Array): string | undefined {
 export function readPublishedFiles(
   listed: readonly string[],
   deleted: ReadonlySet<string>,
-  read: (path: string) => Uint8Array | 'folder' | undefined,
+  read: (path: string) => DiskEntry,
+  index: readonly IndexEntry[],
 ): PublishedFiles {
   const paths = new Set<string>();
   const texts = new Map<string, string>();
   const problems: Problem[] = [];
-  for (const path of [...listed].sort()) {
+  const reported = new Set<string>();
+  for (const { mode, path } of index) {
+    const message = modeProblem(mode);
+    if (message === undefined || reported.has(path)) continue;
+    reported.add(path);
+    problems.push(problem(path, message));
+  }
+  // git lists a path in a merge conflict once for each version.
+  for (const path of [...new Set(listed)].sort()) {
     if (deleted.has(path)) continue;
     paths.add(path);
-    const bytes = read(path);
-    if (bytes === 'folder') {
+    const entry = read(path);
+    if (entry === 'folder') {
       const message = 'is a nested repository or a submodule, which this check does not read';
-      problems.push(problem(path, message));
+      if (!reported.has(path)) problems.push(problem(path, message));
       continue;
     }
-    if (bytes === undefined) {
-      problems.push(problem(path, 'listed by git but not readable'));
+    if (entry === undefined) {
+      // A tracked path whose file is missing without being deleted, such as one that a sparse
+      // checkout leaves out, already has its problem when its mode is not a regular file.
+      if (!reported.has(path)) problems.push(problem(path, 'listed by git but not readable'));
       continue;
     }
+    const isLink = !(entry instanceof Uint8Array);
+    if (isLink && !reported.has(path)) problems.push(problem(path, LINK_MESSAGE));
+    // git publishes a link as the path it points to, so that path is the text to check.
+    const bytes = isLink ? entry.link : entry;
     if (BINARY_EXTENSIONS.has(extension(path))) continue;
     const text = decodeText(bytes);
     if (text === undefined) problems.push(problem(path, 'binary file with an unknown extension'));
