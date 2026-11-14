@@ -87,7 +87,7 @@ Every change that an agent writes passes the local gate (`npm run ci`) and CI, a
 
 - No result exists yet, so nothing here says whether a server helps.
 - A benchmark with one app, one agent and seeded defects says little about other frameworks, other agents or the defects that real projects have.
-- The personal data check relies on patterns that can miss a case, and the lockfile age check does not catch a `file:` dependency on a folder. `AGENTS.md` and the pull requests that added each check describe their known gaps.
+- The personal data check relies on patterns that can miss a case, and the lockfile age check does not reject a `file:` dependency on a folder inside the repository. `AGENTS.md` and the pull requests that added each check describe their known gaps.
 
 ## License
 
