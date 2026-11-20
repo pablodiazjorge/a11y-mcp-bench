@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/wcag-evidence-mcp/tsconfig.json",
     "build": "npm run build --workspace wcag-evidence-mcp",
+    "gen": "npm run gen --workspace wcag-evidence-mcp && prettier --write packages/wcag-evidence-mcp/src/core/axe-rules.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:lockfile-age": "node scripts/check-lockfile-age.ts",

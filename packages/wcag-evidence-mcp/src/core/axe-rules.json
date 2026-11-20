@@ -1,0 +1,473 @@
+{
+  "axeCore": "4.14.0",
+  "rules": [
+    {
+      "id": "area-alt",
+      "criteria": ["2.4.4", "4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-allowed-attr",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-braille-equivalent",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-command-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-conditional-attr",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-deprecated-role",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-hidden-body",
+      "criteria": ["1.3.1", "4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-hidden-focus",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-input-field-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-meter-name",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-progressbar-name",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-prohibited-attr",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-required-attr",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-required-children",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-required-parent",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-roledescription",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": false,
+      "enabled": false,
+      "experimental": false,
+      "deprecated": true
+    },
+    {
+      "id": "aria-roles",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-tab-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-toggle-field-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-tooltip-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-valid-attr",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "aria-valid-attr-value",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "autocomplete-valid",
+      "criteria": ["1.3.5"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "button-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "color-contrast",
+      "criteria": ["1.4.3"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "definition-list",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "dlitem",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "duplicate-id-aria",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "frame-focusable-content",
+      "criteria": ["2.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "frame-title",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "frame-title-unique",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "image-alt",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "input-button-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "input-image-alt",
+      "criteria": ["1.1.1", "4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "label",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "link-name",
+      "criteria": ["2.4.4", "4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "list",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "listitem",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "nested-interactive",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "object-alt",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "p-as-heading",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": false,
+      "enabled": true,
+      "experimental": true,
+      "deprecated": false
+    },
+    {
+      "id": "role-img-alt",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "scrollable-region-focusable",
+      "criteria": ["2.1.1"],
+      "otherCriteria": ["2.1.3"],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "select-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "server-side-image-map",
+      "criteria": ["2.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "summary-name",
+      "criteria": ["4.1.2"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "svg-img-alt",
+      "criteria": ["1.1.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "table-fake-caption",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": false,
+      "enabled": true,
+      "experimental": true,
+      "deprecated": false
+    },
+    {
+      "id": "target-size",
+      "criteria": ["2.5.8"],
+      "otherCriteria": [],
+      "runsByDefault": false,
+      "enabled": false,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "td-has-header",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": false,
+      "enabled": true,
+      "experimental": true,
+      "deprecated": false
+    },
+    {
+      "id": "td-headers-attr",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    },
+    {
+      "id": "th-has-data-cells",
+      "criteria": ["1.3.1"],
+      "otherCriteria": [],
+      "runsByDefault": true,
+      "enabled": true,
+      "experimental": false,
+      "deprecated": false
+    }
+  ]
+}

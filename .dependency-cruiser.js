@@ -27,7 +27,9 @@ const BUILT_IN_OR_PACKAGE = [
 ];
 // What stays out of the published package: the tests, the `test` folder at the root of the
 // server and the tool configuration at its root. A file with one of those names deeper in
-// the source is published like any other.
+// the source is published like any other. The server's `scripts/` folder is not shipped, but
+// it counts as published on purpose: the rules for published code are stricter, so it may not
+// import a development dependency or an adapter.
 const NOT_PUBLISHED = [
   '^packages/wcag-evidence-mcp/.+[.]test[.][cm]?[jt]s$',
   '^packages/wcag-evidence-mcp/test/',
