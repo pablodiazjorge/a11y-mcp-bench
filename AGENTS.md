@@ -6,7 +6,7 @@ Rules for coding agents that work in this repository. `CLAUDE.md` only imports t
 
 A benchmark that asks one question: does an accessibility MCP server help a coding agent fix WCAG defects in an Angular app, and at what cost? An MCP (Model Context Protocol) server gives an agent extra tools to call. WCAG (Web Content Accessibility Guidelines) is the standard that defines an accessibility defect.
 
-So far the repository holds the tooling, continuous integration (CI), these rules and the project documents. The MCP server, the Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
+So far the repository holds the tooling, continuous integration (CI), these rules, the project documents and a skeleton of the MCP server. The Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
 
 ## Map
 
@@ -22,6 +22,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |
 | `tsconfig.base.json`, `tsconfig.json`                                    | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                |
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
+| `packages/wcag-evidence-mcp/`                                            | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`            |
 | `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
 | `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The module boundaries of ADR 0003 as rules for dependency-cruiser, and the tests that each rule catches a forbidden import      |
@@ -33,8 +34,9 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 
 ```bash
 npm ci                       # install exactly what the lockfile pins
-npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, tests with coverage
+npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, server build, tests with coverage
 npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
+npm run build                # only the server build, into packages/wcag-evidence-mcp/dist
 npm run check:repo           # only the repository checks
 npm run check:deps           # only the module boundaries (the rules in .dependency-cruiser.js)
 npm run check:lockfile-age   # only the lockfile age check (needs network access to the npm registry)

@@ -7,7 +7,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['{packages,bench,scripts}/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**'],
+      // Test helpers under a `test` folder are not product code.
+      exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**', '**/test/**'],
       reporter: ['text-summary', 'lcov'],
       thresholds: { lines: 70, branches: 60, functions: 70, statements: 70 },
     },

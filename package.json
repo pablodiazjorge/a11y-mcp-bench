@@ -21,14 +21,15 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p packages/wcag-evidence-mcp/tsconfig.json",
+    "build": "npm run build --workspace wcag-evidence-mcp",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:lockfile-age": "node scripts/check-lockfile-age.ts",
     "check:repo": "node scripts/check-repo.ts",
     "check:deps": "depcruise .",
     "deps:graph": "depcruise . --include-only \"^(packages|fixtures|bench|scripts)/\" --output-type mermaid",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run check:repo && npm run check:deps && npm run test:coverage",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run check:repo && npm run check:deps && npm run build && npm run test:coverage",
     "ci:full": "npm run ci"
   },
   "devDependencies": {

@@ -5,8 +5,10 @@
 // for a part that does not exist yet checks nothing until the part's first file arrives.
 
 const SERVER = '^packages/wcag-evidence-mcp/';
-// An import of the server by its package name leads to its folder through the workspace link.
-// While the server is not built, the import cannot be resolved and keeps the name as written.
+// An import of the server by its package name. The bare name never resolves, because the
+// package ships a binary only, with no `exports` or `main` field, so the tool keeps the name
+// as written. A subpath such as `wcag-evidence-mcp/src/bin.ts` resolves through the workspace
+// link to a file in the server's folder, which `SERVER` matches.
 const SERVER_BY_NAME = '^wcag-evidence-mcp(/|$)';
 const APP = '^fixtures/shop/';
 // The files of a part, without the packages that npm installs inside its folder: a

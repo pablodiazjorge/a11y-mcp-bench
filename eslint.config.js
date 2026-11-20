@@ -23,6 +23,18 @@ export default defineConfig(
       'no-restricted-syntax': [
         'error',
         { selector: 'Decorator', message: 'Decorators cannot run under Node type stripping.' },
+        // Node runs the `.ts` file itself, so a relative `.js` import type-checks and still
+        // fails at run time. `rewriteRelativeImportExtensions` turns `.ts` into `.js` on build.
+        ...[
+          'ImportDeclaration',
+          'ExportNamedDeclaration',
+          'ExportAllDeclaration',
+          'ImportExpression',
+        ].map((node) => ({
+          selector: `${node}[source.value=/^[.].*[.][cm]?js$/]`,
+          message:
+            'A relative import ends in `.ts`, `.mts` or `.cts`, not in `.js`, `.mjs` or `.cjs`.',
+        })),
       ],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },

@@ -39,11 +39,11 @@ sequenceDiagram
 
 ## The parts
 
-Only `scripts` and `docs` exist today. The [roadmap](../README.md#roadmap) says when each of the others arrives.
+Only `scripts`, `docs` and a skeleton of the server exist today: the server starts and answers MCP requests, but has no audit tool yet. The [roadmap](../README.md#roadmap) says when each of the others arrives.
 
 | Path                         | Part                                                                           | Depends on                                               | Exists today |
 | ---------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- | ------------ |
-| `packages/wcag-evidence-mcp` | The MCP server, which is published on its own                                  | Nothing else in the repository                           | No           |
+| `packages/wcag-evidence-mcp` | The MCP server, which is published on its own                                  | Nothing else in the repository                           | A skeleton   |
 | `fixtures/shop`              | The reference Angular app and its unit tests                                   | Nothing else in the repository                           | No           |
 | `fixtures/defects`           | One folder per seeded defect: a patch, its metadata and its test               | `fixtures/shop`, as the target of the patches            | No           |
 | `bench`                      | The harness (runner, grader, statistics, report), preregistrations and results | The two fixtures and the server's tool contract, as data | No           |
@@ -91,8 +91,8 @@ Details of how the rules read the code:
 
 - An `import type` counts as an import in every rule, and so does a type that a JavaScript file takes in a JSDoc comment.
 - An installed package counts only when it is imported by its name. A relative path into a `node_modules` folder is reported, also when that folder is inside the part.
-- An import of the server by its package name, `wcag-evidence-mcp`, counts as an import of the server. While the server is not built, the tool cannot resolve that import, so `no-unresolvable-imports` reports it too.
-- `npm run check:deps` runs before anything is built, so code cannot import a file that a build step generates unless the file is committed; the server's own tests import its code by path, not by its package name.
+- An import of the server by its package name, `wcag-evidence-mcp`, counts as an import of the server. The server's package has no `exports` or `main` field, so the tool cannot resolve that import, and `no-unresolvable-imports` reports it too.
+- On a clean checkout, `npm run check:deps` runs before anything is built, so code cannot import a file that a build step generates unless the file is committed; the server's own tests import its code by path, not by its package name.
 - This configuration does not make the tool read the `paths` of a `tsconfig.json`. An import through such an alias cannot be resolved and fails the check: write the relative path.
 - The server's published code is every source file in its folder except three kinds: the tests (JavaScript or TypeScript files named `*.test.*`), the `test` folder at the root of the server and the tool configuration at its root (JavaScript or TypeScript files named `*.config.*`). A `test` folder or a `*.config.*` file deeper in the folder, such as `src/audit.config.ts`, is published code.
 - Installed packages and generated folders, such as `dist` and `coverage`, are not read. An import that leads to one of their files counts; the imports inside them do not.
@@ -107,4 +107,4 @@ A rule for a part that does not exist yet checks nothing until the part's first 
 npm run --silent deps:graph
 ```
 
-The command prints the imports between the files of `packages`, `fixtures`, `bench` and `scripts` as a Mermaid diagram (a text format for diagrams that GitHub renders). `--silent` keeps npm's own lines out of the output. To see the diagram, paste the output into a `mermaid` code block in any Markdown file or comment on GitHub. Today it shows only `scripts`.
+The command prints the imports between the files of `packages`, `fixtures`, `bench` and `scripts` as a Mermaid diagram (a text format for diagrams that GitHub renders). `--silent` keeps npm's own lines out of the output. To see the diagram, paste the output into a `mermaid` code block in any Markdown file or comment on GitHub. Today it shows only `scripts` and the server.

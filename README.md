@@ -8,7 +8,7 @@ This repository will hold a benchmark that answers that question, and one of the
 
 ## Status
 
-Early. There is no server or benchmark to run yet: the repository holds the tooling, continuous integration (CI) and the project rules.
+Early. There is no audit or benchmark to run yet: the repository holds the tooling, continuous integration (CI), the project rules and a skeleton of the server.
 
 ## What it will measure
 
