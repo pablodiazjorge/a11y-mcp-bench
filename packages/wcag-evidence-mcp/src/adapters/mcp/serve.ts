@@ -52,7 +52,11 @@ export function serveProcess(dependencies: ServerDependencies, process: StdioPro
   serve({ ...dependencies, transport });
 }
 
-/** Passes everything through to `inner`, and calls `onClose` when `inner` closes. */
+/**
+ * Passes everything through to `inner`, and calls `onClose` when `inner` closes. It forwards
+ * only the members of `Transport` that `serveStdio` uses in the 2.4.0 SDK, so an SDK upgrade
+ * must check that the SDK does not use others (ADR 0004).
+ */
 class CloseWatch implements Transport {
   onclose?: (() => void) | undefined;
   onerror?: ((error: Error) => void) | undefined;

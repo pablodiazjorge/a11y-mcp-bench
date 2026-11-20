@@ -5,7 +5,6 @@
 
 import { afterAll, describe, expect, it } from 'vitest';
 import {
-  BUILT,
   BY_NAME,
   cruiseTree,
   GENERATED_FILES,
@@ -14,8 +13,6 @@ import {
   SERVER,
   violations,
 } from './module-boundaries.layout.ts';
-
-const UNBUILT = { [BUILT]: null };
 
 afterAll(removeTrees);
 
@@ -49,13 +46,15 @@ describe('what the module boundaries read', { timeout: 60_000 }, () => {
     const typesOf = (source: string, module: string): string[] =>
       imports.find((item) => item.source === source && item.module === module)?.dependencyTypes ??
       [];
-    expect(typesOf(`${SERVER}/src/index.ts`, 'fs')).toContain('core');
-    expect(typesOf(`${SERVER}/src/index.ts`, 'runtime-lib')).toContain('npm');
-    expect(typesOf(`${SERVER}/src/index.ts`, 'runtime-lib')).not.toContain('npm-dev');
-    expect(typesOf(`${SERVER}/src/index.ts`, 'peer-lib')).toContain('npm-peer');
-    expect(typesOf(`${SERVER}/src/index.ts`, 'optional-lib')).toContain('npm-optional');
-    expect(typesOf(`${SERVER}/src/audit.test.ts`, 'dev-tool')).toContain('npm-dev');
-    expect(typesOf(`${SERVER}/src/audit.test.ts`, 'root-dev-tool')).toContain('npm-no-pkg');
+    const SERVE = `${SERVER}/src/adapters/mcp/serve.ts`;
+    expect(typesOf(SERVE, 'fs')).toContain('core');
+    expect(typesOf(SERVE, 'runtime-lib')).toContain('npm');
+    expect(typesOf(SERVE, 'runtime-lib')).not.toContain('npm-dev');
+    expect(typesOf(SERVE, 'peer-lib')).toContain('npm-peer');
+    expect(typesOf(SERVE, 'optional-lib')).toContain('npm-optional');
+    expect(typesOf(`${SERVER}/src/core/finding.ts`, 'zod')).toContain('npm');
+    expect(typesOf(`${SERVER}/src/core/audit.test.ts`, 'dev-tool')).toContain('npm-dev');
+    expect(typesOf(`${SERVER}/src/core/audit.test.ts`, 'root-dev-tool')).toContain('npm-no-pkg');
     expect(typesOf(`${SERVER}/test/helper.ts`, 'dev-tool')).toContain('npm-dev');
     expect(typesOf(`${SERVER}/vitest.config.ts`, 'root-dev-tool')).toContain('npm-no-pkg');
     expect(typesOf('fixtures/shop/serve.config.ts', 'path')).toContain('core');
@@ -70,11 +69,10 @@ describe('what the module boundaries read', { timeout: 60_000 }, () => {
     );
   });
 
-  // CI checks the boundaries before anything is built. An import of the server by its name
-  // then leads nowhere: the tool cannot resolve it, and the rules know the server by its name.
-  it('reports an import of the server by name while the server is not built', async () => {
+  // The server's package has no `exports` or `main`, so an import by its name leads nowhere:
+  // the tool cannot resolve it, and the rules know the server by its name.
+  it('reports an import of the server by its name, which never resolves', async () => {
     const result = await cruiseTree({
-      ...UNBUILT,
       'bench/by-name.ts': BY_NAME,
       'bench/by-subpath.ts': "export { tools } from 'wcag-evidence-mcp/contract';\n",
       'fixtures/shop/src/by-name.ts': BY_NAME,
@@ -112,11 +110,60 @@ describe('what the module boundaries read', { timeout: 60_000 }, () => {
   it('takes every package for undeclared when the server has no package.json', async () => {
     const result = await cruiseTree({ 'package.json': null, [`${SERVER}/package.json`]: null });
 
-    expect(violations(result)).toEqual(
-      ['optional-lib/dist/index.d.ts', 'peer-lib/dist/index.cjs', 'runtime-lib/dist/index.js'].map(
+    expect(violations(result)).toEqual([
+      ...[
+        'optional-lib/dist/index.d.ts',
+        'peer-lib/dist/index.cjs',
+        'runtime-lib/dist/index.js',
+      ].map(
         (file) =>
-          `server-imports-no-dev-dependency: ${SERVER}/src/index.ts -> node_modules/${file}`,
+          `server-imports-no-dev-dependency: ${SERVER}/src/adapters/mcp/serve.ts -> node_modules/${file}`,
       ),
-    );
+      `server-imports-no-dev-dependency: ${SERVER}/src/core/finding.ts -> node_modules/zod/dist/index.js`,
+    ]);
+  });
+
+  // The core imports neither an adapter nor the binary, and the rules of the adapters and of
+  // the binary say so too.
+  it('reports an import from the core into an adapter or the binary under two rules', async () => {
+    const result = await cruiseTree({
+      [`${SERVER}/src/core/to-adapter.ts`]: "export { TOOL } from '../adapters/mcp/tool.ts';\n",
+      [`${SERVER}/src/core/to-bin.ts`]: "import '../bin.ts';\n",
+    });
+
+    expect(violations(result)).toEqual([
+      `nothing-imports-server-bin: ${SERVER}/src/core/to-bin.ts -> ${SERVER}/src/bin.ts`,
+      `server-core-imports-only-core-and-zod: ${SERVER}/src/core/to-adapter.ts -> ${SERVER}/src/adapters/mcp/tool.ts`,
+      `server-core-imports-only-core-and-zod: ${SERVER}/src/core/to-bin.ts -> ${SERVER}/src/bin.ts`,
+      `server-wires-adapters-only-in-bin: ${SERVER}/src/core/to-adapter.ts -> ${SERVER}/src/adapters/mcp/tool.ts`,
+    ]);
+  });
+
+  // A subpath of the package does resolve, through the workspace link, to a file of the
+  // server. `bench` then reaches every file of the server that the binary imports.
+  it('reports a subpath import of the binary from bench under two rules', async () => {
+    const result = await cruiseTree({
+      'bench/start.ts': "import 'wcag-evidence-mcp/src/bin.ts';\n",
+    });
+
+    expect(violations(result)).toEqual([
+      ...['adapters/browser/open.ts', 'adapters/mcp/serve.ts', 'adapters/mcp/tool.ts']
+        .concat(['bin.ts', 'core/audit.ts', 'core/finding.ts'])
+        .map((file) => `bench-reaches-no-server-code: bench/start.ts -> ${SERVER}/src/${file}`),
+      `nothing-imports-server-bin: bench/start.ts -> ${SERVER}/src/bin.ts`,
+    ]);
+  });
+
+  // npm installs a package inside the server's folder when the server needs another version.
+  it('lets the core import zod installed inside the server folder', async () => {
+    const nested = `${SERVER}/node_modules/zod`;
+    const result = await cruiseTree({
+      [`${nested}/package.json`]: '{ "name": "zod", "exports": "./index.js" }\n',
+      [`${nested}/index.js`]: 'export const number = () => 1;\n',
+    });
+
+    expect(violations(result)).toEqual([]);
+    const finding = result.modules.find(({ source }) => source === `${SERVER}/src/core/finding.ts`);
+    expect(finding?.dependencies.map(({ resolved }) => resolved)).toContain(`${nested}/index.js`);
   });
 });

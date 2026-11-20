@@ -1,5 +1,7 @@
-// The module boundaries of the repository, as rules for dependency-cruiser. ADR 0003
-// (docs/adr/0003-monorepo-layout.md) decides them, and `npm run check:deps` checks them.
+// The module boundaries of the repository as rules for dependency-cruiser, checked by
+// `npm run check:deps`. ADR 0003 (docs/adr/0003-monorepo-layout.md) decides the boundaries
+// between the parts, and ADR 0004 (docs/adr/0004-server-architecture.md) those inside the
+// server.
 //
 // Paths are relative to the root of the repository and written with `/` on every OS. A rule
 // for a part that does not exist yet checks nothing until the part's first file arrives.
@@ -34,6 +36,20 @@ const NOT_PUBLISHED = [
 // Folders that tools fill with build output and reports. `.gitignore` lists each of them.
 const GENERATED =
   '(^|/)(dist|out-tsc|coverage|[.]angular|playwright-report|blob-report|test-results)/';
+
+// The parts inside the server, from ADR 0004: the core, one folder per adapter, and the binary
+// that wires them. The rules for the core and the adapters look at the published code only:
+// the server's tests, in `test/` or next to the code as `*.test.*`, may cross between adapters.
+const CORE = '^packages/wcag-evidence-mcp/src/core/';
+const ADAPTERS = '^packages/wcag-evidence-mcp/src/adapters/';
+// The folder of one adapter. `$1` in a rule's `to` stands for the folder that `from` matched.
+const ADAPTER = '^packages/wcag-evidence-mcp/src/adapters/([^/]+)/';
+const BIN_SOURCE = '^packages/wcag-evidence-mcp/src/bin[.]ts$';
+// The binary and its build. Importing either one starts the server on the importer's stdin.
+const BIN = '^packages/wcag-evidence-mcp/(src/bin[.]ts|dist/bin[.]js)$';
+// `zod`, installed at the root or inside the server's folder. A relative path into
+// `node_modules` matches too, and `server-imports-nothing-outside-its-folder` reports it.
+const ZOD = '(^|/)node_modules/zod/';
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 export default {
@@ -99,6 +115,39 @@ export default {
       from: {},
       to: { couldNotResolve: true },
     },
+    {
+      name: 'server-core-imports-only-core-and-zod',
+      severity: 'error',
+      comment:
+        "The core is tested without a browser, MCP or the operating system, so it imports none of them; `zod` is allowed because the tools' output is described as `zod` schemas.",
+      from: { path: CORE, pathNot: NOT_PUBLISHED },
+      to: { pathNot: [CORE, ZOD] },
+    },
+    {
+      name: 'server-adapter-imports-no-other-adapter',
+      severity: 'error',
+      comment:
+        'Each adapter can be replaced or faked on its own only if no other adapter depends on it.',
+      from: { path: ADAPTER, pathNot: NOT_PUBLISHED },
+      to: { path: ADAPTERS, pathNot: '^packages/wcag-evidence-mcp/src/adapters/$1/' },
+    },
+    {
+      name: 'server-wires-adapters-only-in-bin',
+      severity: 'error',
+      comment:
+        'The binary is the one place that chooses the adapters; code that imported one would tie itself to it.',
+      // The whole folder of the server, so that a file outside `src/` is no bridge either.
+      from: { path: SERVER, pathNot: [ADAPTER, BIN_SOURCE, ...NOT_PUBLISHED] },
+      to: { path: ADAPTERS },
+    },
+    {
+      name: 'nothing-imports-server-bin',
+      severity: 'error',
+      comment:
+        'Importing the binary starts a server on the stdin and stdout of whoever imports it.',
+      from: {},
+      to: { path: BIN },
+    },
   ],
   options: {
     // Installed packages and generated output are leaves of the graph: their own imports are
@@ -111,6 +160,9 @@ export default {
     tsPreCompilationDeps: true,
     // A JavaScript file can take a type from another file in a JSDoc comment.
     detectJSDocImports: true,
+    // `process.getBuiltinModule('node:fs')` loads a Node built-in without an import. Counted
+    // as an import of it, so the core cannot reach a built-in that way either.
+    detectProcessBuiltinModuleCalls: true,
     // Resolve a package the way Node does, through the `exports` field of its `package.json`.
     enhancedResolveOptions: {
       exportsFields: ['exports'],

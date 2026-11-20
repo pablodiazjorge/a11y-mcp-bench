@@ -25,7 +25,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `packages/wcag-evidence-mcp/`                                            | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`            |
 | `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
-| `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The module boundaries of ADR 0003 as rules for dependency-cruiser, and the tests that each rule catches a forbidden import      |
+| `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The boundaries of ADRs 0003 and 0004 as dependency-cruiser rules, and the tests that each rule catches a forbidden import       |
 | `.github/workflows/`                                                     | CI on every pull request and every push to `main`, and the pull request title check                                             |
 | `.github/dependabot.yml`                                                 | Dependabot settings                                                                                                             |
 | `.github/pull_request_template.md`                                       | The three sections of a pull request description                                                                                |

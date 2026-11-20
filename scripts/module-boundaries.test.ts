@@ -1,12 +1,10 @@
-// Shows that each rule in `.dependency-cruiser.js` catches what ADR 0003 forbids. Each case
-// adds forbidden imports to the planned layout and expects the rule to report exactly those.
+// Shows that each rule in `.dependency-cruiser.js` catches what ADRs 0003 and 0004 forbid. Each
+// case adds forbidden imports to the planned layout and expects the rule to report exactly those.
 // What the rules must let through is in module-boundaries.reading.test.ts.
 
 import { afterAll, describe, expect, it } from 'vitest';
 import {
-  BUILT,
-  BY_NAME,
-  type Changes,
+  type Case,
   cruiseTree,
   loadOptions,
   removeTrees,
@@ -15,23 +13,15 @@ import {
   SIBLING,
   violations,
 } from './module-boundaries.layout.ts';
+import { SERVER_CASES } from './module-boundaries.server-cases.ts';
 
-interface Case {
-  /** Name of the rule in `.dependency-cruiser.js`. */
-  rule: string;
-  /** Files added to the layout. */
-  files: Changes;
-  /** What the rule must report: each import as `from -> to`, a cycle as `a <-> b`. */
-  reported: readonly string[];
-}
-
-const AUDIT = `${SERVER}/src/audit.ts`;
+const AUDIT = `${SERVER}/src/core/audit.ts`;
 const DEV_TOOL = 'node_modules/dev-tool/dist/index.js';
 const ROOT_DEV_TOOL = 'node_modules/root-dev-tool/dist/index.js';
 const RUNTIME_LIB = 'node_modules/runtime-lib/dist/index.js';
 const ROOT_MANIFEST = "import manifest from '../../../package.json' with { type: 'json' };\n";
 
-// One case per rule, in the order of ADR 0003.
+// One case per rule: those of ADR 0003 in its order, then those of ADR 0004 in its order.
 const CASES: readonly Case[] = [
   {
     rule: 'server-imports-nothing-outside-its-folder',
@@ -86,7 +76,10 @@ const CASES: readonly Case[] = [
     rule: 'app-imports-nothing-outside-its-folder',
     files: {
       'fixtures/shop/src/to-server.ts': `export { audit } from '../../../${AUDIT}';\n`,
-      'fixtures/shop/src/by-name.ts': BY_NAME,
+      // A subpath of the server's package name resolves through the workspace link, so the
+      // rule must see it although it is written like a package import.
+      'fixtures/shop/src/by-subpath.ts':
+        "export { audit } from 'wcag-evidence-mcp/src/core/audit.ts';\n",
       'fixtures/shop/src/to-bench.ts': "export { report } from '../../../bench/report.ts';\n",
       'fixtures/shop/src/to-scripts.ts':
         "export { countLines } from '../../../scripts/lines.ts';\n",
@@ -108,7 +101,7 @@ const CASES: readonly Case[] = [
         "export { value } from '../node_modules/nested-lib/index.js';\n",
     },
     reported: [
-      `fixtures/shop/src/by-name.ts -> ${BUILT}`,
+      `fixtures/shop/src/by-subpath.ts -> ${AUDIT}`,
       `fixtures/shop/src/into-node-modules.ts -> ${RUNTIME_LIB}`,
       'fixtures/shop/src/into-own-node-modules.ts -> fixtures/shop/node_modules/nested-lib/index.js',
       'fixtures/shop/src/to-bench.ts -> bench/report.ts',
@@ -125,7 +118,6 @@ const CASES: readonly Case[] = [
     rule: 'bench-reaches-no-server-code',
     files: {
       'bench/by-path.ts': `export { audit } from '../${AUDIT}';\n`,
-      'bench/by-name.ts': BY_NAME,
       'bench/grader/deep.ts': `export { audit } from '../../${AUDIT}';\n`,
       'bench/runner.test.ts': `export { audit } from '../${AUDIT}';\n`,
       // A type alone is a shortcut too, also when a JSDoc comment takes it.
@@ -145,7 +137,6 @@ const CASES: readonly Case[] = [
         "export { audit } from '../fixtures/defects/missing-label/bridge.ts';\n",
     },
     reported: [
-      `bench/by-name.ts -> ${BUILT}`,
       `bench/by-path.ts -> ${AUDIT}`,
       `bench/contract.ts -> ${SERVER}/tool-contract.json`,
       `bench/dynamic.ts -> ${AUDIT}`,
@@ -162,13 +153,11 @@ const CASES: readonly Case[] = [
     rule: 'scripts-import-no-other-part',
     files: {
       'scripts/to-server.ts': `export { audit } from '../${AUDIT}';\n`,
-      'scripts/by-name.ts': BY_NAME,
       'scripts/to-fixtures.ts': "export { total } from '../fixtures/shop/src/cart.ts';\n",
       'scripts/to-bench.ts': "export { report } from '../bench/report.ts';\n",
       'scripts/sub/deep.ts': "export { report } from '../../bench/report.ts';\n",
     },
     reported: [
-      `scripts/by-name.ts -> ${BUILT}`,
       'scripts/sub/deep.ts -> bench/report.ts',
       'scripts/to-bench.ts -> bench/report.ts',
       'scripts/to-fixtures.ts -> fixtures/shop/src/cart.ts',
@@ -211,7 +200,7 @@ const CASES: readonly Case[] = [
     rule: 'server-imports-no-test-or-config',
     files: {
       [`${SERVER}/src/uses-helper.ts`]: "export { sample } from '../test/helper.ts';\n",
-      [`${SERVER}/src/uses-test.ts`]: "import './audit.test.ts';\n",
+      [`${SERVER}/src/uses-test.ts`]: "import './core/audit.test.ts';\n",
       [`${SERVER}/src/uses-config.ts`]: "export { default } from '../vitest.config.ts';\n",
       // Published code is not only `src`.
       [`${SERVER}/bin/start.ts`]: "export { sample } from '../test/helper.ts';\n",
@@ -225,7 +214,7 @@ const CASES: readonly Case[] = [
       `${SERVER}/bin/start.ts -> ${SERVER}/test/helper.ts`,
       `${SERVER}/src/uses-config.ts -> ${SERVER}/vitest.config.ts`,
       `${SERVER}/src/uses-helper.ts -> ${SERVER}/test/helper.ts`,
-      `${SERVER}/src/uses-test.ts -> ${SERVER}/src/audit.test.ts`,
+      `${SERVER}/src/uses-test.ts -> ${SERVER}/src/core/audit.test.ts`,
     ],
   },
   {
@@ -246,6 +235,7 @@ const CASES: readonly Case[] = [
       'tools/encoded.ts -> ../scripts/lines%2Ets',
     ],
   },
+  ...SERVER_CASES,
 ];
 
 afterAll(removeTrees);
