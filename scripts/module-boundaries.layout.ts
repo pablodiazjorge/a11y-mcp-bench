@@ -1,6 +1,7 @@
-// What the tests of the module boundaries share: a small copy of the layout that ADR 0003
-// plans, and the way to run dependency-cruiser on it with the real configuration. Most parts
-// of the repository do not exist yet, so the rules cannot be tried on the repository itself.
+// What the tests of the module boundaries share: a small copy of the layout that ADRs 0003
+// and 0004 plan, and the way to run dependency-cruiser on it with the real configuration. Most
+// parts of the repository do not exist yet, so the rules cannot be tried on the repository
+// itself.
 
 import { cruise } from 'dependency-cruiser';
 import type { ICruiseOptions, ICruiseResult } from 'dependency-cruiser';
@@ -16,12 +17,25 @@ export type Tree = Readonly<Record<string, string>>;
 /** Files to add to the layout. `null` takes a file of the layout away. */
 export type Changes = Readonly<Record<string, string | null>>;
 
+/** Forbidden imports for one rule, and what the rule must report about them. */
+export interface Case {
+  /** Name of the rule in `.dependency-cruiser.js`. */
+  rule: string;
+  /** Files added to the layout. */
+  files: Changes;
+  /** What the rule must report: each import as `from -> to`, a cycle as `a <-> b`. */
+  reported: readonly string[];
+}
+
 const CONFIG = fileURLToPath(new URL('../.dependency-cruiser.js', import.meta.url));
 
 export const SERVER = 'packages/wcag-evidence-mcp';
-/** What the server's `package.json` exports: the code that `tsc` builds. */
-export const BUILT = `${SERVER}/dist/index.js`;
-/** An import of the server by its package name, which the workspace link leads to its folder. */
+/** The binary that `tsc` builds, which the server's `package.json` names in `bin`. */
+export const BUILT = `${SERVER}/dist/bin.js`;
+/**
+ * An import of the server by its package name. The package ships a binary only, with no
+ * `exports` or `main`, so the name never resolves.
+ */
 export const BY_NAME = "export { run } from 'wcag-evidence-mcp';\n";
 /** A second package of the workspace, which a case adds. Its name starts like the server's. */
 export const SIBLING = 'packages/wcag-evidence-mcp-extra';
@@ -45,12 +59,15 @@ const installed = (name: string, condition: string, file = 'index.js'): Tree => 
   [`node_modules/${name}/dist/${file}`]: "export * from './not-shipped.js';\n",
 });
 
-/** The `package.json` of the server, with more fields when a case needs them. */
+/**
+ * The `package.json` of the server, with more fields when a case needs them. Like the real one,
+ * it declares a binary and no `exports` or `main` field.
+ */
 export const serverManifest = (fields: object = {}): string =>
   manifest({
     name: 'wcag-evidence-mcp',
-    exports: './dist/index.js',
-    dependencies: { 'runtime-lib': '1.0.0' },
+    bin: { 'wcag-evidence-mcp': 'dist/bin.js' },
+    dependencies: { 'runtime-lib': '1.0.0', zod: '1.0.0' },
     devDependencies: { 'dev-tool': '1.0.0' },
     peerDependencies: { 'peer-lib': '1.0.0' },
     optionalDependencies: { 'optional-lib': '1.0.0' },
@@ -90,32 +107,72 @@ export const LAYOUT: Tree = {
   ...installed('root-dev-tool', 'default'),
   ...installed('peer-lib', 'require', 'index.cjs'),
   ...installed('optional-lib', 'types', 'index.d.ts'),
+  ...installed('zod', 'import'),
   ...GENERATED,
 
+  // The server, laid out as ADR 0004 decides: the core, one folder per adapter, and the
+  // binary that wires them.
   [`${SERVER}/package.json`]: serverManifest(),
-  [`${SERVER}/src/index.ts`]: [
+  [`${SERVER}/src/core/audit.ts`]:
+    'export const audit = (input: number): number => input;\nexport type Audit = typeof audit;\n',
+  [`${SERVER}/src/core/finding.ts`]: [
+    "import * as z from 'zod';",
+    "import type { Audit } from './audit.ts';",
+    'export const finding = z.number();',
+    'export type Check = Audit;',
+    '',
+  ].join('\n'),
+  [`${SERVER}/src/adapters/mcp/serve.ts`]: [
     "import { existsSync } from 'node:fs';",
     "import { value as optional } from 'optional-lib';",
     "import { value as peer } from 'peer-lib';",
     "import { value } from 'runtime-lib';",
-    "import { audit } from './audit.ts';",
-    'export const run = (): number => audit(value + peer + optional);',
+    "import { audit } from '../../core/audit.ts';",
+    "import { TOOL } from './tool.ts';",
+    'export const run = (): number => audit(value + peer + optional + TOOL.length);',
     "export const built = existsSync('dist');",
     '',
   ].join('\n'),
-  [`${SERVER}/src/audit.ts`]:
-    'export const audit = (input: number): number => input;\nexport type Audit = typeof audit;\n',
-  [`${SERVER}/src/audit.test.ts`]: [
-    "import { value } from 'dev-tool';",
-    "import { value as other } from 'root-dev-tool';",
-    "import { sample } from '../test/helper.ts';",
-    "import { audit } from './audit.ts';",
-    'audit(value + other + sample);',
+  [`${SERVER}/src/adapters/mcp/tool.ts`]:
+    "import type { Check } from '../../core/finding.ts';\nexport const TOOL = 'audit_route';\nexport type Tool = Check;\n",
+  [`${SERVER}/src/adapters/browser/open.ts`]:
+    "import { join } from 'node:path';\nimport { audit } from '../../core/audit.ts';\nexport const open = (): string => join(String(audit(1)));\n",
+  [`${SERVER}/src/adapters/browser/page/load.ts`]:
+    "import { open } from '../open.ts';\nexport const load = open;\n",
+  [`${SERVER}/src/bin.ts`]: [
+    "import { open } from './adapters/browser/open.ts';",
+    "import { run } from './adapters/mcp/serve.ts';",
+    "import { audit } from './core/audit.ts';",
+    'audit(run() + open().length);',
     '',
   ].join('\n'),
+  // Tests may cross between adapters, next to the code or in `test/`.
+  [`${SERVER}/src/core/audit.test.ts`]: [
+    "import { value } from 'dev-tool';",
+    "import { value as other } from 'root-dev-tool';",
+    "import { sample } from '../../test/helper.ts';",
+    "import { open } from '../adapters/browser/open.ts';",
+    "import { audit } from './audit.ts';",
+    'audit(value + other + sample + open().length);',
+    '',
+  ].join('\n'),
+  [`${SERVER}/src/adapters/mcp/serve.test.ts`]:
+    "import { open } from '../browser/open.ts';\nimport { run } from './serve.ts';\nrun();\nopen();\n",
   // A test does not have to be a `.ts` file.
   [`${SERVER}/src/cli.test.mjs`]: "import { value } from 'dev-tool';\nexport default value;\n",
   [`${SERVER}/test/helper.ts`]: "import { value } from 'dev-tool';\nexport const sample = value;\n",
+  // A helper of the tests, not itself a `*.test.*` file, that drives an adapter.
+  [`${SERVER}/test/session.ts`]:
+    "export { run as openSession } from '../src/adapters/mcp/serve.ts';\n",
+  [`${SERVER}/test/server.test.ts`]: [
+    "import { open } from '../src/adapters/browser/open.ts';",
+    "import { run } from '../src/adapters/mcp/serve.ts';",
+    "import { sample } from './helper.ts';",
+    'run();',
+    'open();',
+    'export { sample };',
+    '',
+  ].join('\n'),
   [`${SERVER}/vitest.config.ts`]: "import { value } from 'root-dev-tool';\nexport default value;\n",
 
   'fixtures/shop/package.json': manifest({ name: 'shop' }),

@@ -1,12 +1,13 @@
 # Architecture
 
-The repository has six parts, and the dependencies between them run one way. `npm run check:deps` checks the main boundaries as part of the local gate (`npm run ci`). This page shows who takes part in a study, what each part may depend on and how that is checked.
+The repository has six parts, and the dependencies between them run one way. `npm run check:deps` checks the main boundaries as part of the local gate (`npm run ci`). This page shows who takes part in a study, what each part may depend on, how the server is split inside and how that is checked.
 
-The reasons are in three ADRs (architecture decision records):
+The reasons are in four ADRs (architecture decision records):
 
 - [ADR 0001](adr/0001-scope-and-non-goals.md): what the project measures and what it leaves out.
 - [ADR 0002](adr/0002-methodology.md): how a study is run and graded.
-- [ADR 0003](adr/0003-monorepo-layout.md): the layout and the boundaries described here.
+- [ADR 0003](adr/0003-monorepo-layout.md): the layout and the boundaries between the parts.
+- [ADR 0004](adr/0004-server-architecture.md): the server's SDK, the parts inside it and what its tools return.
 
 ## A study
 
@@ -68,6 +69,14 @@ flowchart TD
   bench -.->|"reads the tool contract, imports no code"| server
 ```
 
+## Inside the server
+
+The server is split into ports and adapters ([ADR 0004](adr/0004-server-architecture.md)). Its source, in `packages/wcag-evidence-mcp/src/`, has three parts:
+
+- `core/` holds the server's own logic: today the server's identity and the shape of its log, later the criteria, the findings and the output. It imports nothing but itself and `zod`.
+- `adapters/` holds the adapters. Each folder in `adapters/` connects the core to one outside thing. Today there are three: `mcp` (the MCP SDK over stdio), `log-stream` (stderr) and `package-json` (the package's own `package.json`). An adapter may import anything the server may, except another adapter and `bin.ts`.
+- `bin.ts` creates the adapters and wires them together. Apart from the adapters themselves and the tests, it is the only file of the server that imports an adapter, and nothing imports it.
+
 ## How the boundaries are checked
 
 ```bash
@@ -86,10 +95,15 @@ The command runs [dependency-cruiser](https://github.com/sverweij/dependency-cru
 | `server-imports-no-dev-dependency`          | The server's published code importing a package that the server's own `package.json` lists only under `devDependencies`, or does not list (even if the root `package.json` lists it) |
 | `server-imports-no-test-or-config`          | The server's published code importing one of the server's tests or tool configuration files                                                                                          |
 | `no-unresolvable-imports`                   | An import that the tool cannot resolve to a file, an installed package or a Node built-in, anywhere in the repository                                                                |
+| `server-core-imports-only-core-and-zod`     | The server's core importing a Node built-in, a package other than `zod` or a file of the server outside the core                                                                     |
+| `server-adapter-imports-no-other-adapter`   | One adapter of the server importing another                                                                                                                                          |
+| `server-wires-adapters-only-in-bin`         | A file of the server importing an adapter, unless it is in an adapter's folder, is `src/bin.ts`, or is not published (a test or a configuration file at the server's root)           |
+| `nothing-imports-server-bin`                | Any file importing the server's binary, `src/bin.ts`, or its build, `dist/bin.js`                                                                                                    |
 
-Details of how the rules read the code:
+The first eight rules come from ADR 0003 and the last four from ADR 0004. Details of how the rules read the code:
 
-- An `import type` counts as an import in every rule, and so does a type that a JavaScript file takes in a JSDoc comment.
+- An `import type` counts as an import in every rule, and so does a type that a JavaScript file takes in a JSDoc comment. A Node built-in loaded with `process.getBuiltinModule` counts as an import of it.
+- The rules for the core and the adapters skip the server's code that is not published: the tests (files named `*.test.*`, and the server's top-level `test` folder) and the configuration files at its root. So a test may import any adapter. No file may import the binary, tests included.
 - An installed package counts only when it is imported by its name. A relative path into a `node_modules` folder is reported, also when that folder is inside the part.
 - An import of the server by its package name, `wcag-evidence-mcp`, counts as an import of the server. The server's package has no `exports` or `main` field, so the tool cannot resolve that import, and `no-unresolvable-imports` reports it too.
 - On a clean checkout, `npm run check:deps` runs before anything is built, so code cannot import a file that a build step generates unless the file is committed; the server's own tests import its code by path, not by its package name.
@@ -97,7 +111,7 @@ Details of how the rules read the code:
 - The server's published code is every source file in its folder except three kinds: the tests (JavaScript or TypeScript files named `*.test.*`), the `test` folder at the root of the server and the tool configuration at its root (JavaScript or TypeScript files named `*.config.*`). A `test` folder or a `*.config.*` file deeper in the folder, such as `src/audit.config.ts`, is published code.
 - Installed packages and generated folders, such as `dist` and `coverage`, are not read. An import that leads to one of their files counts; the imports inside them do not.
 
-The rules check the boundaries that ADR 0003 lists, not every line of the parts table. For example, no rule keeps `fixtures/defects` or `bench` from importing `scripts`. No rule forbids an import from `fixtures/defects` into the server either, but `bench-reaches-no-server-code` reports it as soon as a file of `bench` reaches it.
+The rules check the boundaries that ADRs 0003 and 0004 list, not every line of the parts table. For example, no rule keeps `fixtures/defects` or `bench` from importing `scripts`. No rule forbids an import from `fixtures/defects` into the server either, but `bench-reaches-no-server-code` reports it as soon as a file of `bench` reaches it. Inside the server, a file that is neither the core, an adapter nor `bin.ts` is checked only for importing an adapter or the binary, besides the rules of ADR 0003.
 
 A rule for a part that does not exist yet checks nothing until the part's first file arrives. The tests in `scripts/module-boundaries.test.ts` and `scripts/module-boundaries.reading.test.ts` show that each rule works anyway: they build a small copy of the planned layout in a temporary folder, add forbidden imports and expect each rule to report them.
 

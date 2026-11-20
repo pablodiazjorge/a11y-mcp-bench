@@ -1,4 +1,4 @@
-// Nothing in `core` imports MCP or another library, so the core can be tested without them.
+// The core imports only itself and `zod` (ADR 0004), so it can be tested without MCP or a browser.
 
 import type { ServerIdentity } from './identity.ts';
 
