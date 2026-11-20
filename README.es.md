@@ -34,7 +34,7 @@ Las partes y cómo dependen unas de otras están en [docs/architecture.md](docs/
 
 ## Qué no es
 
-- **No es un auditor completo de WCAG.** Las comprobaciones automáticas solo encuentran una parte de los problemas de accesibilidad de una página.
+- **No es un auditor completo de WCAG.** Las comprobaciones automáticas solo encuentran una parte de los problemas de accesibilidad de una página. Los doce criterios que comprobará el servidor están en [docs/wcag-2.2-scope.md](docs/wcag-2.2-scope.md).
 - **Solo Angular.** La aplicación de referencia y los defectos son código Angular.
 - **Solo Claude Code hasta la v1.0.0.** Otros agentes pueden llegar después.
 - **Solo páginas locales.** El servidor audita páginas servidas desde la misma máquina.
