@@ -4,6 +4,8 @@ The server's audit tools will check twelve WCAG 2.2 success criteria (the testab
 
 The criteria and their wording come from the [WCAG 2.2 W3C Recommendation](https://www.w3.org/TR/WCAG22/) of 12 December 2024. The rule identifiers come from axe-core 4.14.0 (the open-source library of automatic accessibility checks that the server runs), the version that the counts on this page come from. Both were checked on 2026-11-20. Why the server exists and why it stays small is in [ADR 0001](adr/0001-scope-and-non-goals.md); what a finding looks like is in [ADR 0004](adr/0004-server-architecture.md).
 
+The server holds the same twelve criteria as data in `packages/wcag-evidence-mcp/src/core/criteria.ts`. A test fails when that catalog and this page disagree on the number, name, level, link, way of deciding, class or requirement of a criterion. It also fails when a list of axe-core rules on this page disagrees with the map of axe-core rules that the server generates, `packages/wcag-evidence-mcp/src/core/axe-rules.json`.
+
 ## How a criterion is decided
 
 Each criterion gets one of two classes, except 2.4.7 and 2.4.11, whose class is set when the keyboard checks are designed:
@@ -46,7 +48,7 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 
 ### 1.3.5 Identify Input Purpose (AA)
 
-- **Requires:** a field that asks for information about the user has its purpose in the code, such as an `autocomplete` value.
+- **Requires:** a field that asks for information about the user declares its purpose in the code, such as with an `autocomplete` value.
 - **Rule (1):** `autocomplete-valid`, which checks that an `autocomplete` value is valid.
 - **Manual:** whether a field that asks for user data has an `autocomplete` value at all, and whether the value matches what the field asks for.
 
@@ -64,7 +66,7 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 
 ### 4.1.2 Name, Role, Value (A)
 
-- **Requires:** every control has a name and a role that software can read, and its states and values can be read, set and followed by assistive technologies.
+- **Requires:** every control has a name and a role that software can read, and assistive technologies can read its states and values, set those that the user can set, and are told when they change.
 - **Rules (28):** `area-alt`, `aria-allowed-attr`, `aria-braille-equivalent`, `aria-command-name`, `aria-conditional-attr`, `aria-deprecated-role`, `aria-hidden-body`, `aria-hidden-focus`, `aria-input-field-name`, `aria-prohibited-attr`, `aria-required-attr`, `aria-roles`, `aria-tab-name`, `aria-toggle-field-name`, `aria-tooltip-name`, `aria-valid-attr-value`, `aria-valid-attr`, `button-name`, `duplicate-id-aria`, `frame-title-unique`, `frame-title`, `input-button-name`, `input-image-alt`, `label`, `link-name`, `nested-interactive`, `select-name`, `summary-name`. They check that names, roles and ARIA attributes are present and valid. axe-core also has `aria-roledescription`, deprecated and off by default.
 - **Manual:** whether a name describes the control, and whether its states change as the user works it, such as `aria-expanded` on a menu that opens.
 
@@ -89,13 +91,13 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 
 ### 2.4.3 Focus Order (A)
 
-- **Requires:** when focus moves through the page in sequence, the order keeps the meaning and the use of the page.
+- **Requires:** keyboard focus moves through the page in an order that keeps its meaning and lets it be used.
 - **Own check (a heuristic):** places where the order of the elements in the code and the order on screen are inverted.
 - **Manual:** whether an order makes sense for the content, which no comparison of positions can decide.
 
 ### 2.4.7 Focus Visible (AA)
 
-- **Requires:** a control operated with the keyboard shows where the keyboard focus is.
+- **Requires:** any part of the page that works with a keyboard shows when it has the keyboard focus.
 - **Own check:** what counts as visible focus, and therefore the class, is set when the keyboard checks are designed. The starting proposal compares the pixels of the element with focus and without it.
 
 ### 2.4.11 Focus Not Obscured (Minimum) (AA)

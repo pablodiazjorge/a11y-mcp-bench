@@ -24,6 +24,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `tsconfig.base.json`, `tsconfig.json`                                    | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                |
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
 | `packages/wcag-evidence-mcp/`                                            | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`            |
+| `packages/wcag-evidence-mcp/scripts/`                                    | The generator that `npm run gen` runs to write `src/core/axe-rules.json`, the map of axe-core rules                             |
 | `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
 | `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The boundaries of ADRs 0003 and 0004 as dependency-cruiser rules, and the tests that each rule catches a forbidden import       |
@@ -38,6 +39,7 @@ npm ci                       # install exactly what the lockfile pins
 npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, server build, tests with coverage
 npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
 npm run build                # only the server build, into packages/wcag-evidence-mcp/dist
+npm run gen                  # rewrite the generated files: today the map of axe-core rules, from the installed axe-core
 npm run check:repo           # only the repository checks
 npm run check:deps           # only the module boundaries (the rules in .dependency-cruiser.js)
 npm run check:lockfile-age   # only the lockfile age check (needs network access to the npm registry)
