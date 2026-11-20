@@ -1,0 +1,30 @@
+{
+  "name": "wcag-evidence-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An MCP server that will audit a local web page for WCAG defects and return evidence a coding agent can act on.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pablodiazjorge/a11y-mcp-bench.git",
+    "directory": "packages/wcag-evidence-mcp"
+  },
+  "type": "module",
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "bin": {
+    "wcag-evidence-mcp": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node -e \"process.getBuiltinModule('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "4.6.7"
+  }
+}

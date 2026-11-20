@@ -12,7 +12,7 @@ Only the `main` branch is supported until the first release. After that, the lat
 
 ## Scope
 
-- The code in this repository: the scripts, the CI workflows and, when they arrive, the MCP server and the benchmark harness.
+- The code in this repository: the scripts, the CI workflows, the MCP server and, when it arrives, the benchmark harness.
 - A way to make the repository checks or the lockfile age check pass when they should fail counts as a vulnerability, unless it is a known gap listed in `AGENTS.md` or in the pull request that added the check.
 
 Out of scope: vulnerabilities in a dependency that this project does not make worse. Report those to the dependency.

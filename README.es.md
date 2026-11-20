@@ -8,7 +8,7 @@ Este repositorio tendrá un banco de pruebas que responda a esa pregunta y uno d
 
 ## Estado
 
-En sus inicios. Todavía no hay servidor ni banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI) y las reglas del proyecto.
+En sus inicios. Todavía no hay auditoría ni banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y un esqueleto del servidor.
 
 ## Qué medirá
 
