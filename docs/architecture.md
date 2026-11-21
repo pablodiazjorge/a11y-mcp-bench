@@ -2,12 +2,13 @@
 
 The repository has six parts, and the dependencies between them run one way. `npm run check:deps` checks the main boundaries as part of the local gate (`npm run ci`). This page shows who takes part in a study, what each part may depend on, how the server is split inside and how that is checked.
 
-The reasons are in four ADRs (architecture decision records):
+The reasons are in five ADRs (architecture decision records):
 
 - [ADR 0001](adr/0001-scope-and-non-goals.md): what the project measures and what it leaves out.
 - [ADR 0002](adr/0002-methodology.md): how a study is run and graded.
 - [ADR 0003](adr/0003-monorepo-layout.md): the layout and the boundaries between the parts.
 - [ADR 0004](adr/0004-server-architecture.md): the server's SDK, the parts inside it and what its tools return.
+- [ADR 0005](adr/0005-url-policy.md): which URLs the server may open.
 
 ## A study
 
@@ -73,7 +74,7 @@ flowchart TD
 
 The server is split into ports and adapters ([ADR 0004](adr/0004-server-architecture.md)). Its source, in `packages/wcag-evidence-mcp/src/`, has three parts:
 
-- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria and the map of the axe-core rules tagged with them; later the findings and the output. It imports nothing but itself and `zod`.
+- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them and the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)); later the findings and the output. It imports nothing but itself and `zod`.
 - `adapters/` holds the adapters. Each folder in `adapters/` connects the core to one outside thing. Today there are three: `mcp` (the MCP SDK over stdio), `log-stream` (stderr) and `package-json` (the package's own `package.json`). An adapter may import anything the server may, except another adapter and `bin.ts`.
 - `bin.ts` creates the adapters and wires them together. Apart from the adapters themselves and the tests, it is the only file of the server that imports an adapter, and nothing imports it.
 
