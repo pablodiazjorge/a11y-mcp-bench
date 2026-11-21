@@ -1,4 +1,5 @@
 import { McpServer, type McpServerFactory } from '@modelcontextprotocol/server';
+import type { BrowserPort } from '../../core/browser.ts';
 import type { ServerIdentity } from '../../core/identity.ts';
 import type { Log } from '../../core/log.ts';
 import { registerServerInfoTool } from './server-info-tool.ts';
@@ -7,6 +8,8 @@ import { registerServerInfoTool } from './server-info-tool.ts';
 export interface ServerDependencies {
   readonly identity: ServerIdentity;
   readonly log: Log;
+  /** One browser for every connection and call. No tool opens a page yet; `audit_route` will. */
+  readonly browser: BrowserPort;
 }
 
 /**

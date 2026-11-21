@@ -36,14 +36,18 @@ export interface StdioProcess {
 }
 
 /**
- * Serves MCP over the stdin and stdout of `process`, and makes it exit with 1 when the
- * connection closes before the client ended stdin. The SDK closes the connection on a fatal
+ * Serves MCP over the stdin and stdout of `process`, closes the browser when the connection
+ * closes, and makes the process exit with 1 when that happens before the client ended stdin. The SDK closes the connection on a fatal
  * transport error (a message over its buffer limit, a broken stdout) without saying so, and
  * the process would otherwise exit with 0, or keep waiting on stdin and never exit.
  */
 export function serveProcess(dependencies: ServerDependencies, process: StdioProcess): void {
   const { stdin, stdout } = process;
   const transport = new CloseWatch(new StdioServerTransport(stdin, stdout), () => {
+    // Chromium runs in processes of its own, which would keep this one alive.
+    dependencies.browser.close().catch((error: unknown) => {
+      dependencies.log(`error while closing the browser: ${String(error)}`);
+    });
     if (stdin.readableEnded) return;
     dependencies.log('the connection closed before the client ended stdin');
     process.exitCode = 1;

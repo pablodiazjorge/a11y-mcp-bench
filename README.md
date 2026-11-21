@@ -68,10 +68,11 @@ Checked on 2026-11-12.
 
 ## Development
 
-You need Node 26 (or Node 24.15 or a later 24.x) and npm 11.
+You need Node 26 (or Node 24.15 or a later 24.x) and npm 11. The server and its tests drive Chromium, which `npm run browser:install` downloads; on Linux, `npm run browser:install -- --with-deps` also installs the system libraries it needs.
 
 ```bash
 npm ci
+npm run browser:install
 npm run ci
 ```
 

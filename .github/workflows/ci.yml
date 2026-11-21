@@ -38,6 +38,15 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
+      # The browser tests drive Chromium, which npm does not install. It is downloaded on every
+      # run: Playwright's CI guide advises against caching it, because restoring takes about as
+      # long as downloading, and the system libraries that it needs on Linux cannot be cached.
+      - name: Install Chromium and the system libraries it needs
+        if: runner.os == 'Linux'
+        run: npm run browser:install -- --with-deps
+      - name: Install Chromium
+        if: runner.os != 'Linux'
+        run: npm run browser:install
       - run: npm run ci:full
 
   lockfile-age:

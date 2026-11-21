@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import { createServerFactory } from '../src/adapters/mcp/factory.ts';
 import { serve } from '../src/adapters/mcp/serve.ts';
+import { createBrowserDouble } from './browser-double.ts';
 import { IDENTITY, MODERN_VERSION, openSession, type Era, type Session } from './session.ts';
 
 interface ListedTool {
@@ -135,6 +136,7 @@ describe('a transport error', () => {
     const logs: string[] = [];
     const handle = serve({
       identity: IDENTITY,
+      browser: createBrowserDouble(),
       log: (line) => logs.push(line),
       transport: new StdioServerTransport(stdin, stdout),
     });
@@ -155,7 +157,11 @@ describe('a transport error', () => {
 describe('the server factory', () => {
   it('builds a new instance on each call, as the SDK may discard one', async () => {
     const logs: string[] = [];
-    const factory = createServerFactory({ identity: IDENTITY, log: (line) => logs.push(line) });
+    const factory = createServerFactory({
+      identity: IDENTITY,
+      log: (line) => logs.push(line),
+      browser: createBrowserDouble(),
+    });
 
     const first = await factory({ era: 'modern' });
     const second = await factory({ era: 'legacy' });
