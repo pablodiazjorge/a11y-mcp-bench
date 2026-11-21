@@ -36,6 +36,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 
 ```bash
 npm ci                       # install exactly what the lockfile pins
+npm run browser:install      # download the Chromium that the server and its tests drive; on Linux, add -- --with-deps for its system libraries (needs administrator rights)
 npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, server build, tests with coverage
 npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
 npm run build                # only the server build, into packages/wcag-evidence-mcp/dist
@@ -77,6 +78,7 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
 - Dependencies come only from the npm registry. The lockfile age check fails on a dependency from git, a URL or a tarball, on a package that ships its own `npm-shrinkwrap.json`, on a workspace folder with `node_modules` in its name, and on a folder outside the repository, such as a `file:../lib` dependency.
   - The check cannot tell a `file:` dependency on a folder inside the repository from a workspace, so do not add one.
   - The check reads the lockfile, not the folders, so it cannot see where a symlink leads. Do not commit a symlink: `npm run check:repo` fails on one.
+- Chromium is the one download outside npm: `npm run browser:install` fetches, from Playwright's servers, the build that the pinned `playwright-core` names. Changing the version of `playwright-core` changes the browser too. Its age follows that of `playwright-core`, which the lockfile age check covers.
 
 ### TypeScript
 

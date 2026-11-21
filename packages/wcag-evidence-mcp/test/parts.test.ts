@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createStreamLog } from '../src/adapters/log-stream/stream-log.ts';
 import { serveProcess, type StdioProcess } from '../src/adapters/mcp/serve.ts';
 import { readPackageIdentity } from '../src/adapters/package-json/read-identity.ts';
+import { createBrowserDouble } from './browser-double.ts';
 
 describe('createStreamLog', () => {
   it('writes each message as one prefixed line to the sink it is given', () => {
@@ -68,15 +69,16 @@ describe('serveProcess', () => {
     const stdin = new PassThrough();
     const stdout = new PassThrough();
     const process: StdioProcess = { stdin, stdout };
+    const browser = createBrowserDouble();
     serveProcess(
-      { identity: { name: 'x', version: '1.0.0' }, log: (line) => logs.push(line) },
+      { identity: { name: 'x', version: '1.0.0' }, log: (line) => logs.push(line), browser },
       process,
     );
-    return { logs, stdin, stdout, process };
+    return { logs, stdin, stdout, process, browser };
   }
 
-  it('keeps exit code 0 when the client ends stdin', async () => {
-    const { logs, stdin, process } = start();
+  it('keeps exit code 0 and closes the browser when the client ends stdin', async () => {
+    const { logs, stdin, process, browser } = start();
     const ended = new Promise<void>((resolve) => stdin.once('end', () => setImmediate(resolve)));
 
     stdin.end();
@@ -84,10 +86,11 @@ describe('serveProcess', () => {
 
     expect(process.exitCode).toBeUndefined();
     expect(logs).not.toContain('the connection closed before the client ended stdin');
+    expect(browser.closeCalls).toBe(1);
   });
 
-  it('sets exit code 1 and lets go of stdin when the connection closes first', async () => {
-    const { logs, stdin, stdout, process } = start();
+  it('sets exit code 1, lets go of stdin and closes the browser when the connection closes first', async () => {
+    const { logs, stdin, stdout, process, browser } = start();
     const failed = new Promise<void>((resolve) =>
       stdout.once('error', () => setImmediate(resolve)),
     );
@@ -98,5 +101,6 @@ describe('serveProcess', () => {
     expect(process.exitCode).toBe(1);
     expect(stdin.destroyed).toBe(true);
     expect(logs).toContain('the connection closed before the client ended stdin');
+    expect(browser.closeCalls).toBe(1);
   });
 });

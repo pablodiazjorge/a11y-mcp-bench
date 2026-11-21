@@ -68,10 +68,11 @@ Comprobado el 12 de noviembre de 2026.
 
 ## Desarrollo
 
-Hacen falta Node 26 (o Node 24 a partir de la 24.15) y npm 11.
+Hacen falta Node 26 (o Node 24 a partir de la 24.15) y npm 11. El servidor y sus tests usan Chromium, que descarga `npm run browser:install`; en Linux, `npm run browser:install -- --with-deps` instala además las bibliotecas del sistema que necesita.
 
 ```bash
 npm ci
+npm run browser:install
 npm run ci
 ```
 

@@ -3,5 +3,9 @@
 import { createStreamLog } from './adapters/log-stream/stream-log.ts';
 import { serveProcess } from './adapters/mcp/serve.ts';
 import { readPackageIdentity } from './adapters/package-json/read-identity.ts';
+import { createPlaywrightBrowser } from './adapters/playwright/browser.ts';
 
-serveProcess({ identity: readPackageIdentity(), log: createStreamLog(process.stderr) }, process);
+const log = createStreamLog(process.stderr);
+// Created once, outside the SDK's factory, which may build an instance and throw it away (ADR 0004).
+const browser = createPlaywrightBrowser({ log });
+serveProcess({ identity: readPackageIdentity(), log, browser }, process);

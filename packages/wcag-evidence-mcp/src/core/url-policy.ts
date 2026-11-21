@@ -1,6 +1,7 @@
-// The first layer of the URL policy (ADR 0005): which URLs the server may open. It runs before a
-// page is opened and, once the browser port exists, on every redirect hop and subresource that
-// goes to the network. So an allowed URL must also pass in the form that the parser writes it.
+// The URL policy (ADR 0005). `checkUrl` is its first layer: which URLs the server may open. It runs
+// before a page is opened, and the browser adapter runs it again on every request of the page,
+// which it can stop, and on every redirect hop, which it can only report. So an allowed URL must
+// also pass in the form that the parser writes it.
 //
 // Many spellings reach the local machine: `127.1`, `0x7f.0.0.1`, `[::ffff:127.0.0.1]`,
 // `localhost.`, `shop.localhost`. The parser turns the numeric ones into `127.0.0.1`, keeps
@@ -75,4 +76,19 @@ export function checkUrl(text: string): UrlCheck {
   // anything else, so what follows the port in the text is already a path, a query or a fragment.
   if (!text.startsWith(`http://${url.hostname}:${url.port}`)) return refuse('not-as-written');
   return { allowed: true, url: url.href };
+}
+
+// Chromium connects `localhost` to `::1` when a server listens there: first when it listens on both
+// addresses, and only there when the server listens on `::1` alone, as a development server can.
+// So both loopback addresses count, in the one form that Playwright writes each: `[::1]` comes in
+// brackets. Observed on Windows on 2026-11-21, with the Chrome Headless Shell that
+// `playwright-core` 1.65.1 installs.
+const LOCAL_ADDRESSES: readonly string[] = ['127.0.0.1', '[::1]'];
+
+/**
+ * The third layer of the URL policy: whether the address that the browser connected to, as
+ * Playwright reports it, is the local machine.
+ */
+export function isLocalAddress(address: string): boolean {
+  return LOCAL_ADDRESSES.includes(address);
 }

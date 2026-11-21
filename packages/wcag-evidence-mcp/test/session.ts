@@ -9,6 +9,7 @@ import {
 } from '@modelcontextprotocol/server';
 import { serve } from '../src/adapters/mcp/serve.ts';
 import type { ServerIdentity } from '../src/core/identity.ts';
+import { createBrowserDouble } from './browser-double.ts';
 
 export const IDENTITY: ServerIdentity = { name: 'test-server', version: '1.2.3' };
 export const MODERN_VERSION = '2026-07-28';
@@ -43,7 +44,12 @@ function isResponse(message: JSONRPCMessage): message is JSONRPCMessage & Respon
 export async function openSession(era: Era, version = MODERN_VERSION): Promise<Session> {
   const [client, server] = InMemoryTransport.createLinkedPair();
   const logs: string[] = [];
-  const handle = serve({ identity: IDENTITY, log: (line) => logs.push(line), transport: server });
+  const handle = serve({
+    identity: IDENTITY,
+    log: (line) => logs.push(line),
+    browser: createBrowserDouble(),
+    transport: server,
+  });
   const waiting = new Map<string | number, (response: Response) => void>();
   client.onmessage = (message) => {
     if (isResponse(message)) waiting.get(message.id)?.(message);
