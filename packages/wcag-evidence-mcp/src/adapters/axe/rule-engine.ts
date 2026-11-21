@@ -3,6 +3,8 @@ import * as z from 'zod';
 import type { LoadedPage } from '../../core/browser.ts';
 import {
   engineFindingSchema,
+  isComponentTag,
+  type Component,
   type EngineFinding,
   type Measurement,
   type RuleEngine,
@@ -23,12 +25,22 @@ const rawResultSchema = z.object({
           rect: z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }),
           documentIndex: z.number(),
           checks: z.array(rawCheckSchema),
+          component: z
+            .object({
+              tag: z.string(),
+              usedIn: z.string().nullable(),
+              method: z.enum(['style-attribute', 'nearest-custom-element']),
+            })
+            .nullable(),
         }),
       ),
     }),
   ),
 });
 type RawCheck = z.infer<typeof rawCheckSchema>;
+type RawComponent = z.infer<
+  typeof rawResultSchema
+>['violations'][number]['nodes'][number]['component'];
 
 const contrastDataSchema = z.object({
   fgColor: z.string(),
@@ -60,6 +72,75 @@ const CHECK_IDS: ReadonlySet<string> = new Set(
 );
 
 /**
+ * The part of the page script that names the Angular component that declares an element. It reads
+ * the page only: the server gives the tag to search the code for, and reads no file.
+ *
+ * Angular adds `_ngcontent-<key>` to each element of the template of a component that has styles,
+ * and `_nghost-<key>`, with the same key, to the component's own element. So an element with the
+ * first attribute was declared by the component whose element has the second, even when it is drawn
+ * elsewhere: projected into another component, or in an overlay hung from `<body>`. The key starts
+ * with the app's id, which Angular allows to hold letters, digits, `-` and `_`, and writes in
+ * lowercase. The host is looked for first among the element's ancestors, then in its shadow root,
+ * then in the document, since a document search does not see into shadow roots.
+ *
+ * An element without the attribute belongs to a component without styles, to one that turns the
+ * attribute off (`ViewEncapsulation.None`, as Angular Material does), or to code that made it by
+ * hand. Then the closest enclosing custom element is given, and the component of the app that
+ * uses it, through that element's own attribute. That is a guess, and the output says so.
+ *
+ * The guess would name a custom element on any page, so it runs only on an Angular app: one whose
+ * root component carries `ng-version`, or where some element carries `_nghost-`. The second needs
+ * the walk of the whole document that also numbers the elements (`hosts`). On any other page, no
+ * element gets a component.
+ */
+const COMPONENT_SCRIPT = String.raw`
+const angular = hosts || document.querySelector('[ng-version]') !== null;
+const keyOf = (element) => {
+  const name = element.getAttributeNames().find((each) => each.startsWith('_ngcontent-'));
+  const key = name === undefined ? '' : name.slice('_ngcontent-'.length);
+  return /^[a-z0-9_-]{1,64}$/.test(key) ? key : null;
+};
+const hostTag = (element, key) => {
+  const selector = '[_nghost-' + key + ']';
+  const root = element.getRootNode();
+  const host =
+    element.closest(selector) ??
+    (root instanceof ShadowRoot ? root.querySelector(selector) : null) ??
+    document.querySelector(selector);
+  return host?.localName ?? null;
+};
+const parentOf = (element) => {
+  if (element.parentElement) return element.parentElement;
+  const root = element.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+};
+const componentOf = (element) => {
+  if (!angular) return null;
+  const key = keyOf(element);
+  const declaring = key === null ? null : hostTag(element, key);
+  if (declaring !== null) return { tag: declaring, usedIn: null, method: 'style-attribute' };
+  for (let parent = parentOf(element); parent; parent = parentOf(parent)) {
+    if (!parent.localName.includes('-')) continue;
+    const usedKey = keyOf(parent);
+    const usedIn = usedKey === null ? null : hostTag(parent, usedKey);
+    return { tag: parent.localName, usedIn, method: 'nearest-custom-element' };
+  }
+  return null;
+};
+`;
+
+/**
+ * The component as the script read it. A tag that is not a plain custom element name counts as no
+ * tag at all, since the tag is text of the page; so does `ng-component`, the tag that Angular gives
+ * a component without a selector, which names nothing to search for.
+ */
+function plainComponent(read: RawComponent): Component {
+  if (read === null || !isComponentTag(read.tag)) return null;
+  const usedIn = read.usedIn !== null && isComponentTag(read.usedIn) ? read.usedIn : null;
+  return { tag: read.tag, usedIn, method: read.method };
+}
+
+/**
  * The script that runs axe-core in the page's isolated world and returns plain JSON. The rectangle
  * and the position in the document of each element are read there, from the element that axe-core
  * reports, since an element cannot leave the page.
@@ -83,14 +164,17 @@ const result = await engine.run(document, {
 });
 const order = new Map();
 let next = 0;
+let hosts = false;
 const walk = (root) => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     order.set(node, next++);
+    hosts ||= node.getAttributeNames().some((name) => name.startsWith('_nghost-'));
     if (node.shadowRoot) walk(node.shadowRoot);
   }
 };
 walk(document);
+${COMPONENT_SCRIPT}
 const checks = (list) => list.map((check) => ({ id: check.id, data: check.data ?? null }));
 return {
   version: engine.version,
@@ -103,6 +187,7 @@ return {
         rect: { x: box.x + window.scrollX, y: box.y + window.scrollY, width: box.width, height: box.height },
         documentIndex: order.has(node.element) ? order.get(node.element) : -1,
         checks: [...checks(node.any), ...checks(node.all), ...checks(node.none)],
+        component: componentOf(node.element),
       };
     }),
   })),
@@ -143,6 +228,7 @@ export function createAxeRuleEngine(): RuleEngine {
             },
             documentIndex: node.documentIndex,
             measurement: measure(rule, node.checks),
+            component: plainComponent(node.component),
           }),
         ),
       );

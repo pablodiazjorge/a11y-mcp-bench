@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  The DOM that Angular draws for the fourteen cases of the test of reading the component from the
+  page, on 2026-11-14 with Angular 22.2: written by hand from that test, in the form that Angular
+  gives with emulated styles, not captured from the app. On 2026-11-21 the real builds of that app,
+  for development and for production, were audited with the same result. Each component with
+  styles has its own key: its element carries `_nghost-<key>`, and each element of its template
+  carries `_ngcontent-<key>`. A failing element is marked by its class, and the comment above it
+  names the case and the component that the audit must give.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Angular cases</title>
+  </head>
+  <body>
+    <app-root ng-version="22.2.6" _nghost-ng-c100="">
+      <h1 _ngcontent-ng-c100="">Shop</h1>
+      <!-- 1. The root template: app-root -->
+      <img
+        _ngcontent-ng-c100=""
+        class="root-image"
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      />
+      <!-- 2. A child component used three times: app-card, three times -->
+      <app-card _ngcontent-ng-c100="" _nghost-ng-c101=""
+        ><button _ngcontent-ng-c101="" class="card-action"></button
+      ></app-card>
+      <app-card _ngcontent-ng-c100="" _nghost-ng-c101=""
+        ><button _ngcontent-ng-c101="" class="card-action"></button
+      ></app-card>
+      <app-card _ngcontent-ng-c100="" _nghost-ng-c101=""
+        ><button _ngcontent-ng-c101="" class="card-action"></button
+      ></app-card>
+      <!-- 3. Content that app-root projects into app-panel: app-root, not app-panel -->
+      <app-panel _ngcontent-ng-c100="" _nghost-ng-c102="">
+        <section _ngcontent-ng-c102="" class="panel-body">
+          <a _ngcontent-ng-c100="" href="/more" class="projected-link"></a>
+        </section>
+      </app-panel>
+      <!-- 4. Inside @if: app-root -->
+      <!--container-->
+      <p _ngcontent-ng-c100="" class="if-text" style="color: #aaaaaa; background: #ffffff">Shown</p>
+      <!-- 5. Inside @for, in app-list: app-list -->
+      <app-list _ngcontent-ng-c100="" _nghost-ng-c103="">
+        <ul _ngcontent-ng-c103="">
+          <li _ngcontent-ng-c103="">
+            <input _ngcontent-ng-c103="" type="checkbox" class="for-input" />
+          </li>
+          <!--container-->
+        </ul>
+      </app-list>
+      <!-- 6. Inside @defer: app-root -->
+      <img
+        _ngcontent-ng-c100=""
+        class="deferred-image"
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      />
+      <!-- 7. A component loaded later, without styles: app-deferred, a guess, used in app-root -->
+      <app-deferred _ngcontent-ng-c100=""><button class="deferred-button"></button></app-deferred>
+      <!-- 8. The trigger of an overlay that app-toolbar declares in its template -->
+      <app-toolbar _ngcontent-ng-c100="" _nghost-ng-c104=""
+        ><button _ngcontent-ng-c104="" class="menu-trigger">Menu</button></app-toolbar
+      >
+      <!-- 10. A role that a directive sets: app-root, the template that declares the element -->
+      <div
+        _ngcontent-ng-c100=""
+        appclickable=""
+        role="button"
+        tabindex="0"
+        class="directive-target"
+      ></div>
+      <!-- 11. A role that app-chip sets on its own element: app-root, which declares the element -->
+      <app-chip _ngcontent-ng-c100="" _nghost-ng-c106="" role="img" class="chip"
+        ><span _ngcontent-ng-c106="">o</span></app-chip
+      >
+      <!-- 12. A Material component, whose styles add no attribute: mat-checkbox, a guess, used in app-root -->
+      <mat-checkbox _ngcontent-ng-c100="" class="mat-mdc-checkbox">
+        <div class="mdc-form-field">
+          <div class="mdc-checkbox">
+            <input
+              type="checkbox"
+              class="mdc-checkbox__native-control material-input"
+              id="mat-mdc-checkbox-1-input"
+            />
+          </div>
+          <label for="mat-mdc-checkbox-1-input"></label>
+        </div>
+      </mat-checkbox>
+      <!-- 13. A component with an inline template: app-inline -->
+      <app-inline _ngcontent-ng-c100="" _nghost-ng-c107=""
+        ><img
+          _ngcontent-ng-c107=""
+          class="inline-image"
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      /></app-inline>
+      <!-- 14. A component with its template in a file of its own: app-file -->
+      <app-file _ngcontent-ng-c100="" _nghost-ng-c108=""
+        ><img
+          _ngcontent-ng-c108=""
+          class="file-image"
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      /></app-file>
+      <!-- 15. Beyond the fourteen: a component with emulated styles inside one with shadow DOM: app-inner -->
+      <app-shadow _ngcontent-ng-c100=""
+        ><template shadowrootmode="open"
+          ><app-inner _nghost-ng-c109=""
+            ><img
+              _ngcontent-ng-c109=""
+              class="shadow-image"
+              src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" /></app-inner></template
+      ></app-shadow>
+    </app-root>
+    <div class="cdk-overlay-container">
+      <!-- 8. An overlay that app-toolbar declares in its template, hung from <body>: app-toolbar -->
+      <div class="cdk-overlay-pane">
+        <div _ngcontent-ng-c104="" class="menu" role="menu">
+          <button _ngcontent-ng-c104="" role="menuitem" class="menu-item"></button>
+        </div>
+      </div>
+      <!-- 9. An overlay that code creates, with its own component: app-tooltip -->
+      <div class="cdk-overlay-pane">
+        <app-tooltip _nghost-ng-c105=""
+          ><span
+            _ngcontent-ng-c105=""
+            class="tooltip-text"
+            style="color: #bbbbbb; background: #ffffff"
+            >Hint</span
+          ></app-tooltip
+        >
+      </div>
+    </div>
+  </body>
+</html>

@@ -7,8 +7,10 @@ import type { BrowserPort, VisitFailure } from './browser.ts';
 import { CRITERIA, criterionIdSchema } from './criteria.ts';
 import { findingIds, routeOf } from './finding-id.ts';
 import {
+  componentSchema,
   measurementSchema,
   rectSchema,
+  type Component,
   type EngineFinding,
   type RuleEngine,
 } from './rule-engine.ts';
@@ -61,6 +63,7 @@ const findingSchema = z.strictObject({
           "axe-core's CSS selector of the element, written by the page's code; ' >>> ' separates the steps into shadow roots",
         ),
       rect: rectSchema,
+      component: componentSchema,
     })
     .describe('Where the element is'),
 });
@@ -197,15 +200,24 @@ function shape(
     );
   const ids = findingIds(
     route,
-    sorted.map(({ finding }) => finding),
+    sorted.map(({ finding }) => ({ ...finding, component: componentKey(finding.component) })),
   );
   return sorted.map(({ finding, criteria }, index) => ({
     id: ids[index] ?? '',
     criteria: [...criteria],
     rule: finding.rule,
     measurement: finding.measurement,
-    location: { selector: finding.selector, rect: finding.rect },
+    location: { selector: finding.selector, rect: finding.rect, component: finding.component },
   }));
+}
+
+/**
+ * The component as the identifier sums it up: its tag alone. Where it is used and how it was read
+ * change when a component gains its first style, as when a fix adds a rule for a contrast, and the
+ * identifier should not.
+ */
+function componentKey(component: Component): string {
+  return component?.tag ?? '';
 }
 
 function compare(a: string, b: string): number {

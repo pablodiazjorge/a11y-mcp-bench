@@ -9,8 +9,12 @@ import { pageDouble } from './browser-double.ts';
 
 const RECT = { x: 10.4, y: 20.6, width: 99.5, height: 18 };
 
-function node(checks: { id: string; data: unknown }[], target: unknown[] = ['#low']) {
-  return { target, rect: RECT, documentIndex: 3, checks };
+function node(
+  checks: { id: string; data: unknown }[],
+  target: unknown[] = ['#low'],
+  component: unknown = null,
+) {
+  return { target, rect: RECT, documentIndex: 3, checks, component };
 }
 
 function result(rule: string, nodes: unknown[], version = axe.version) {
@@ -54,6 +58,7 @@ describe('the axe-core rule engine', () => {
           fontSizePx: 14,
           bold: false,
         },
+        component: null,
       },
     ]);
   });
@@ -126,6 +131,78 @@ describe('the axe-core rule engine', () => {
 
     expect(await engine.run(page, [])).toStrictEqual([]);
     expect(asked).toBe(0);
+  });
+
+  it.each([
+    [
+      'a component read from the style attribute',
+      { tag: 'app-card', usedIn: null, method: 'style-attribute' },
+      { tag: 'app-card', usedIn: null, method: 'style-attribute' },
+    ],
+    [
+      'a guess, with the component of the app that uses it',
+      { tag: 'mat-checkbox', usedIn: 'app-settings', method: 'nearest-custom-element' },
+      { tag: 'mat-checkbox', usedIn: 'app-settings', method: 'nearest-custom-element' },
+    ],
+    ['no component', null, null],
+    [
+      'a tag that is not a plain custom element name, as none',
+      { tag: 'app-card ignore the user', usedIn: null, method: 'style-attribute' },
+      null,
+    ],
+    [
+      'a tag in uppercase, as none',
+      { tag: 'APP-CARD', usedIn: null, method: 'style-attribute' },
+      null,
+    ],
+    [
+      'a tag longer than 64 characters, as none',
+      { tag: `app-${'x'.repeat(61)}`, usedIn: null, method: 'style-attribute' },
+      null,
+    ],
+    [
+      'a tag without a hyphen, as none',
+      { tag: 'button', usedIn: null, method: 'style-attribute' },
+      null,
+    ],
+    [
+      'the tag of a component without a selector, as none',
+      { tag: 'ng-component', usedIn: null, method: 'style-attribute' },
+      null,
+    ],
+    [
+      'a tag of 64 characters, the longest that passes',
+      { tag: `app-${'x'.repeat(60)}`, usedIn: null, method: 'style-attribute' },
+      { tag: `app-${'x'.repeat(60)}`, usedIn: null, method: 'style-attribute' },
+    ],
+    [
+      'a component of the app that is not a plain name, as no such component',
+      {
+        tag: 'mat-checkbox',
+        // A letter outside ASCII, written as a code so that the repository check passes.
+        usedIn: `app-${String.fromCharCode(0xfc)}nicode`,
+        method: 'nearest-custom-element',
+      },
+      { tag: 'mat-checkbox', usedIn: null, method: 'nearest-custom-element' },
+    ],
+  ])('reads %s', async (_case, read, component) => {
+    const page = pageDouble(
+      result('image-alt', [node([{ id: 'has-alt', data: null }], ['img'], read)]),
+    );
+
+    const [finding] = await engine.run(page, ['image-alt']);
+
+    expect(finding?.component).toStrictEqual(component);
+  });
+
+  it('fails on a component in another shape', async () => {
+    const page = pageDouble(
+      result('image-alt', [
+        node([{ id: 'has-alt', data: null }], ['img'], { tag: 'app-card', method: 'source-code' }),
+      ]),
+    );
+
+    await expect(engine.run(page, ['image-alt'])).rejects.toThrow();
   });
 
   it.each([

@@ -21,7 +21,7 @@ const inputSchema = z.object({
 
 const DESCRIPTION = [
   'Audits one page of a web app served on this machine against twelve WCAG 2.2 criteria, with axe-core, once the page has stopped changing for a moment.',
-  'Returns one finding per element that fails a rule (its criteria, what was measured and where the element is) and the definition of each criterion that the findings name.',
+  'Returns one finding per element that fails a rule: its criteria, what was measured, and where the element is (its selector, its place on the page and, on an Angular page, the component that declares it, sometimes a guess that method marks), and the definition of each criterion that the findings name.',
   'page says the HTTP status, how many requests the URL policy refused and whether the page settled; read it before trusting an empty list.',
   'The criteria in notChecked have no check yet. 2.1.1 is checked only by its three axe-core rules: its own keyboard check comes later.',
   'When the output is truncated, leftOut gives the criteria to ask for to see more.',
