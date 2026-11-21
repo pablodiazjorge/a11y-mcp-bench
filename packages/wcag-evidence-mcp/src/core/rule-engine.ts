@@ -79,6 +79,45 @@ export const measurementSchema = z.discriminatedUnion('kind', [
     .describe('A rule without numbers to report: what the element lacks'),
 ]);
 
+/**
+ * The tag of an element of the page that names a component, such as `app-card`. It is text of the
+ * page, so only a plain custom element name passes: lowercase ASCII letters and digits in two or
+ * more parts joined by hyphens, from 3 to 64 characters. The pattern has no lookahead, so that a
+ * validator of JSON schemas with RE2 regular expressions can read it.
+ */
+const COMPONENT_TAG = /^[a-z][a-z0-9]*(-[a-z0-9]+)+$/;
+const componentTag = z.string().min(3).max(64).regex(COMPONENT_TAG);
+
+/**
+ * Whether `text` can name a component. `ng-component`, the tag that Angular gives a component
+ * without a selector, names nothing that the agent could search for.
+ */
+export function isComponentTag(text: string): boolean {
+  return componentTag.safeParse(text).success && text !== 'ng-component';
+}
+
+/** The Angular component that declares the element, as read from the page (docs/architecture.md). */
+export const componentSchema = z
+  .strictObject({
+    tag: componentTag.describe(
+      'The tag of the component to search the code for, such as app-card. Its file is not given',
+    ),
+    usedIn: componentTag
+      .nullable()
+      .describe(
+        "Only with nearest-custom-element: the app's component whose template uses the tag, such as the one that holds a mat-checkbox. Null when that component has no styles to read it from",
+      ),
+    method: z
+      .enum(['style-attribute', 'nearest-custom-element'])
+      .describe(
+        'style-attribute: read from the attribute that Angular adds to the elements of a component with styles, which names the component that declares the element. nearest-custom-element: the element had no such attribute, so the closest enclosing custom element is given, a guess; for content projected from a component without styles, it names the component that the content is projected into, the wrong one',
+      ),
+  })
+  .nullable()
+  .describe(
+    "The Angular component that declares the element, read from the page's own elements and attributes: a hint of where to look in the code, not a file. Null when the page is not an Angular app, the element is outside every component, or the tag is not a plain custom element name, as for a component with an attribute selector such as button[mat-button]",
+  );
+
 export const engineFindingSchema = z.strictObject({
   rule: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
   /** The engine's CSS selector of the element, which can hold text of the page's own code. */
@@ -87,11 +126,13 @@ export const engineFindingSchema = z.strictObject({
   /** The element's position among the elements of the document, open shadow roots included. */
   documentIndex: z.number().int().nonnegative(),
   measurement: measurementSchema,
+  component: componentSchema,
 });
 
 export type Rect = z.infer<typeof rectSchema>;
 export type Measurement = z.infer<typeof measurementSchema>;
 export type EngineFinding = z.infer<typeof engineFindingSchema>;
+export type Component = z.infer<typeof componentSchema>;
 
 export interface RuleEngine {
   /** The name and version of the engine, such as `axe-core 4.14.0`. */

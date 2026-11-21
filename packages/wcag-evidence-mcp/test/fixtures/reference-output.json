@@ -6,7 +6,7 @@
   },
   "findings": [
     {
-      "id": "66fbfbd7",
+      "id": "0d7b6225",
       "criteria": ["1.1.1"],
       "rule": "image-alt",
       "measurement": {
@@ -26,11 +26,12 @@
           "y": 70,
           "width": 30,
           "height": 30
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "ea1cb54d",
+      "id": "1cd30965",
       "criteria": ["1.4.3"],
       "rule": "color-contrast",
       "measurement": {
@@ -49,11 +50,12 @@
           "y": 10,
           "width": 200,
           "height": 20
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "aeac5367-9",
+      "id": "e63a46fc",
       "criteria": ["1.4.3"],
       "rule": "color-contrast",
       "measurement": {
@@ -72,11 +74,16 @@
           "y": 40,
           "width": 100,
           "height": 20
+        },
+        "component": {
+          "tag": "app-price",
+          "usedIn": null,
+          "method": "style-attribute"
         }
       }
     },
     {
-      "id": "aeac5367-11",
+      "id": "1d9b3dea",
       "criteria": ["1.4.3"],
       "rule": "color-contrast",
       "measurement": {
@@ -95,11 +102,16 @@
           "y": 40,
           "width": 100,
           "height": 20
+        },
+        "component": {
+          "tag": "app-badge",
+          "usedIn": null,
+          "method": "style-attribute"
         }
       }
     },
     {
-      "id": "87e23f83",
+      "id": "8e907109",
       "criteria": ["2.1.1"],
       "rule": "scrollable-region-focusable",
       "measurement": {
@@ -113,11 +125,12 @@
           "y": 130,
           "width": 100,
           "height": 40
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "b4ce978c",
+      "id": "ae03ee14",
       "criteria": ["2.4.4", "4.1.2"],
       "rule": "link-name",
       "measurement": {
@@ -137,11 +150,12 @@
           "y": 70,
           "width": 30,
           "height": 30
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "10213ee7",
+      "id": "79d36d35",
       "criteria": ["2.5.8"],
       "rule": "target-size",
       "measurement": {
@@ -159,11 +173,12 @@
           "y": 110,
           "width": 10,
           "height": 10
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "3c26f918",
+      "id": "758084a6",
       "criteria": ["2.5.8"],
       "rule": "target-size",
       "measurement": {
@@ -181,11 +196,12 @@
           "y": 110,
           "width": 10,
           "height": 10
-        }
+        },
+        "component": null
       }
     },
     {
-      "id": "94991516",
+      "id": "683df986",
       "criteria": ["4.1.2"],
       "rule": "button-name",
       "measurement": {
@@ -207,7 +223,8 @@
           "y": 70,
           "width": 40,
           "height": 30
-        }
+        },
+        "component": null
       }
     }
   ],

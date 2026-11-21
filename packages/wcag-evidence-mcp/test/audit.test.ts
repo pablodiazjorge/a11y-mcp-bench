@@ -16,6 +16,7 @@ function found(rule: string, selector: string, documentIndex: number): EngineFin
     rect: { x: 0, y: documentIndex, width: 10, height: 10 },
     documentIndex,
     measurement: { kind: 'failed-checks', checks: ['some-check'] },
+    component: null,
   };
 }
 
@@ -131,7 +132,7 @@ describe('auditRoute', () => {
   it('identifies each finding by the route, the rule and the selector', async () => {
     const output = await audit([found('image-alt', 'img[_ngcontent-ng-c5=""]', 2)]);
 
-    expect(output.findings[0]?.id).toBe(findingHash('/catalog', 'image-alt', 'img'));
+    expect(output.findings[0]?.id).toBe(findingHash('/catalog', 'image-alt', '', 'img'));
   });
 
   it('runs only the rules of the criteria asked for, and keeps the same identifiers', async () => {
@@ -216,6 +217,7 @@ describe('the cap, on many findings', () => {
       location: {
         selector: `.item-${String(index)}`,
         rect: { x: 0, y: index, width: 1, height: 1 },
+        component: null,
       },
     }));
     const context = { page: { status: 200, refusedRequests: 0, settled: true }, notChecked: [] };

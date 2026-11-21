@@ -38,6 +38,7 @@ const FINDING: EngineFinding = {
   rect: { x: 10, y: 20, width: 30, height: 40 },
   documentIndex: 7,
   measurement: { kind: 'failed-checks', checks: ['has-alt', 'aria-label'] },
+  component: { tag: 'app-logo', usedIn: null, method: 'style-attribute' },
 };
 
 const sessions: Session[] = [];

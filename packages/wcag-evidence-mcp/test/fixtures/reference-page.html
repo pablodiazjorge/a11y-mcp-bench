@@ -37,8 +37,8 @@
       >
         Price
       </p>
-      <!-- 1.4.3, twice: two components whose selectors differ only by Angular's style attribute -->
-      <div _nghost-ng-c1111111111="">
+      <!-- 1.4.3, twice: app-price and app-badge, whose selectors differ only by the style attribute -->
+      <app-price _nghost-ng-c1111111111="">
         <span
           _ngcontent-ng-c1111111111=""
           class="box"
@@ -52,8 +52,8 @@
           "
           >One</span
         >
-      </div>
-      <div _nghost-ng-c2222222222="">
+      </app-price>
+      <app-badge _nghost-ng-c2222222222="">
         <span
           _ngcontent-ng-c2222222222=""
           class="box"
@@ -67,7 +67,7 @@
           "
           >Two</span
         >
-      </div>
+      </app-badge>
       <!-- Not a finding: contrast over a gradient, which axe-core can only ask a person to review -->
       <p
         class="box"
