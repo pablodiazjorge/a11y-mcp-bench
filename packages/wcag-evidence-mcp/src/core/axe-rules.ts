@@ -1,7 +1,7 @@
 // Which axe-core rules carry the tag of one of the twelve criteria, as axe-core describes them.
 // The core cannot import axe-core (ADR 0004), so the map is a file that `npm run gen` writes
 // from the installed axe-core, and a test fails when the file no longer matches it. The map
-// holds facts only: which rules the server runs is decided when the audit tool is built.
+// holds facts only: which rules the server runs is decided in audit.ts.
 
 import * as z from 'zod';
 import map from './axe-rules.json' with { type: 'json' };

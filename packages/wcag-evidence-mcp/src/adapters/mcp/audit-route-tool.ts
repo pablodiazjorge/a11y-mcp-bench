@@ -1,0 +1,103 @@
+import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
+import * as z from 'zod';
+import { auditOutputSchema, auditRoute, CRITERION_IDS, type AuditPorts } from '../../core/audit.ts';
+import type { VisitFailure } from '../../core/browser.ts';
+import type { Log } from '../../core/log.ts';
+
+export const AUDIT_ROUTE_TOOL = 'audit_route';
+
+const inputSchema = z.object({
+  url: z
+    .string()
+    .describe(
+      'The page to audit, on this machine: http://localhost or http://127.0.0.1 with an explicit port other than 80, such as http://localhost:4200/catalog',
+    ),
+  criteria: z
+    .array(z.enum(CRITERION_IDS as [string, ...string[]]))
+    .min(1)
+    .optional()
+    .describe('Only the findings of these criteria, such as ["1.4.3"]. All twelve when left out'),
+});
+
+const DESCRIPTION = [
+  'Audits one page of a web app served on this machine against twelve WCAG 2.2 criteria, with axe-core, once the page has stopped changing for a moment.',
+  'Returns one finding per element that fails a rule (its criteria, what was measured and where the element is) and the definition of each criterion that the findings name.',
+  'page says the HTTP status, how many requests the URL policy refused and whether the page settled; read it before trusting an empty list.',
+  'The criteria in notChecked have no check yet. 2.1.1 is checked only by its three axe-core rules: its own keyboard check comes later.',
+  'When the output is truncated, leftOut gives the criteria to ask for to see more.',
+].join(' ');
+
+/** Registers `audit_route`, which opens a local page and reports what fails on it. */
+export function registerAuditRouteTool(server: McpServer, ports: AuditPorts, log: Log): void {
+  server.registerTool(
+    AUDIT_ROUTE_TOOL,
+    {
+      title: 'Audit route',
+      description: DESCRIPTION,
+      inputSchema,
+      outputSchema: auditOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        // The URL policy keeps the tool on pages served by this machine (ADR 0005).
+        openWorldHint: false,
+      },
+    },
+    async ({ url, criteria }): Promise<CallToolResult> => {
+      let result;
+      try {
+        result = await auditRoute(ports, { url, criteria });
+      } catch (error) {
+        // The error can carry text of the page, so it goes to the log only.
+        log(`${AUDIT_ROUTE_TOOL} failed: ${String(error)}`);
+        return refusal('The audit failed while reading the page, so it returns no findings.');
+      }
+      if (!result.ok) {
+        const { failure } = result;
+        // The log stays on this machine, so it keeps the browser's own message.
+        const detail = 'message' in failure ? `: ${failure.message}` : '';
+        log(`${AUDIT_ROUTE_TOOL} did not open the page: ${failure.reason}${detail}`);
+        return refusal(explain(failure, url));
+      }
+      const { output } = result;
+      log(`${AUDIT_ROUTE_TOOL} returned ${String(output.findings.length)} findings`);
+      // The specification asks a tool with structured content to return the same JSON as text too,
+      // for clients that only read text.
+      return {
+        structuredContent: output,
+        content: [{ type: 'text', text: JSON.stringify(output) }],
+      };
+    },
+  );
+}
+
+function refusal(text: string): CallToolResult {
+  return { isError: true, content: [{ type: 'text', text }] };
+}
+
+/**
+ * Says why the page was not opened, in the server's own words. Only the URL that the agent gave
+ * is repeated: a redirect target or a browser message could carry text of the page.
+ */
+function explain(failure: VisitFailure, asked: string): string {
+  switch (failure.reason) {
+    case 'url-policy':
+      return failure.url === asked
+        ? `The URL is refused (${failure.rejection}): only http://localhost or http://127.0.0.1 with an explicit port, other than 80, followed by a path, are allowed.`
+        : `The page redirected to a URL that is refused (${failure.rejection}), so it was not audited.`;
+    case 'not-local':
+      return 'The page was not served from this machine, so it was not audited.';
+    case 'load-failed': {
+      const code = /net::(ERR_[A-Z_]+)/.exec(failure.message)?.[1];
+      return `The page could not be loaded${code === undefined ? '' : ` (${code})`}. Check that the app is being served at that URL.`;
+    }
+    case 'navigated':
+      return 'The page went to another document while it was being audited, as through a redirect in a script, so it was not audited.';
+    case 'timeout':
+      return 'The page did not load, or the audit did not finish, within the time limit.';
+    case 'browser-unavailable':
+      // Playwright's message can hold a local path, with the name of the user account.
+      return 'The browser is not available: it could not be started, or it closed during the audit.';
+  }
+}

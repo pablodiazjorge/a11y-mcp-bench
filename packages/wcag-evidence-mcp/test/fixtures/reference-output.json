@@ -1,0 +1,255 @@
+{
+  "page": {
+    "status": 200,
+    "refusedRequests": 0,
+    "settled": true
+  },
+  "findings": [
+    {
+      "id": "66fbfbd7",
+      "criteria": ["1.1.1"],
+      "rule": "image-alt",
+      "measurement": {
+        "kind": "failed-checks",
+        "checks": [
+          "has-alt",
+          "aria-label",
+          "aria-labelledby",
+          "non-empty-title",
+          "presentational-role"
+        ]
+      },
+      "location": {
+        "selector": "img",
+        "rect": {
+          "x": 10,
+          "y": 70,
+          "width": 30,
+          "height": 30
+        }
+      }
+    },
+    {
+      "id": "ea1cb54d",
+      "criteria": ["1.4.3"],
+      "rule": "color-contrast",
+      "measurement": {
+        "kind": "contrast",
+        "ratio": 2.84,
+        "required": 4.5,
+        "foreground": "#999999",
+        "background": "#ffffff",
+        "fontSizePx": 14,
+        "bold": false
+      },
+      "location": {
+        "selector": "#price",
+        "rect": {
+          "x": 10,
+          "y": 10,
+          "width": 200,
+          "height": 20
+        }
+      }
+    },
+    {
+      "id": "aeac5367-9",
+      "criteria": ["1.4.3"],
+      "rule": "color-contrast",
+      "measurement": {
+        "kind": "contrast",
+        "ratio": 2.32,
+        "required": 4.5,
+        "foreground": "#aaaaaa",
+        "background": "#ffffff",
+        "fontSizePx": 16,
+        "bold": false
+      },
+      "location": {
+        "selector": "span[_ngcontent-ng-c1111111111=\"\"]",
+        "rect": {
+          "x": 10,
+          "y": 40,
+          "width": 100,
+          "height": 20
+        }
+      }
+    },
+    {
+      "id": "aeac5367-11",
+      "criteria": ["1.4.3"],
+      "rule": "color-contrast",
+      "measurement": {
+        "kind": "contrast",
+        "ratio": 2.32,
+        "required": 4.5,
+        "foreground": "#aaaaaa",
+        "background": "#ffffff",
+        "fontSizePx": 16,
+        "bold": false
+      },
+      "location": {
+        "selector": "span[_ngcontent-ng-c2222222222=\"\"]",
+        "rect": {
+          "x": 120,
+          "y": 40,
+          "width": 100,
+          "height": 20
+        }
+      }
+    },
+    {
+      "id": "87e23f83",
+      "criteria": ["2.1.1"],
+      "rule": "scrollable-region-focusable",
+      "measurement": {
+        "kind": "failed-checks",
+        "checks": ["focusable-content", "focusable-element"]
+      },
+      "location": {
+        "selector": "ul",
+        "rect": {
+          "x": 10,
+          "y": 130,
+          "width": 100,
+          "height": 40
+        }
+      }
+    },
+    {
+      "id": "b4ce978c",
+      "criteria": ["2.4.4", "4.1.2"],
+      "rule": "link-name",
+      "measurement": {
+        "kind": "failed-checks",
+        "checks": [
+          "has-visible-text",
+          "aria-label",
+          "aria-labelledby",
+          "non-empty-title",
+          "focusable-no-name"
+        ]
+      },
+      "location": {
+        "selector": "a",
+        "rect": {
+          "x": 100,
+          "y": 70,
+          "width": 30,
+          "height": 30
+        }
+      }
+    },
+    {
+      "id": "10213ee7",
+      "criteria": ["2.5.8"],
+      "rule": "target-size",
+      "measurement": {
+        "kind": "target-size",
+        "width": 10,
+        "height": 10,
+        "required": 24,
+        "offset": 0,
+        "requiredOffset": 24
+      },
+      "location": {
+        "selector": "button[aria-label=\"Smaller\"]",
+        "rect": {
+          "x": 10,
+          "y": 110,
+          "width": 10,
+          "height": 10
+        }
+      }
+    },
+    {
+      "id": "3c26f918",
+      "criteria": ["2.5.8"],
+      "rule": "target-size",
+      "measurement": {
+        "kind": "target-size",
+        "width": 10,
+        "height": 10,
+        "required": 24,
+        "offset": 0,
+        "requiredOffset": 24
+      },
+      "location": {
+        "selector": "button[aria-label=\"Larger\"]",
+        "rect": {
+          "x": 22,
+          "y": 110,
+          "width": 10,
+          "height": 10
+        }
+      }
+    },
+    {
+      "id": "94991516",
+      "criteria": ["4.1.2"],
+      "rule": "button-name",
+      "measurement": {
+        "kind": "failed-checks",
+        "checks": [
+          "button-has-visible-text",
+          "aria-label",
+          "aria-labelledby",
+          "non-empty-title",
+          "implicit-label",
+          "explicit-label",
+          "presentational-role"
+        ]
+      },
+      "location": {
+        "selector": "#cdk-dialog-0 > button",
+        "rect": {
+          "x": 50,
+          "y": 70,
+          "width": 40,
+          "height": 30
+        }
+      }
+    }
+  ],
+  "definitions": [
+    {
+      "criterion": "1.1.1",
+      "name": "Non-text Content",
+      "requires": "Every image or other non-text content has a text alternative that serves the same purpose.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html"
+    },
+    {
+      "criterion": "1.4.3",
+      "name": "Contrast (Minimum)",
+      "requires": "Text has a contrast ratio of at least 4.5:1 with its background, or 3:1 for large text.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "criterion": "2.1.1",
+      "name": "Keyboard",
+      "requires": "Everything on the page can be done with a keyboard.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html"
+    },
+    {
+      "criterion": "2.4.4",
+      "name": "Link Purpose (In Context)",
+      "requires": "The purpose of each link can be told from its text, or from its text and its context.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html"
+    },
+    {
+      "criterion": "2.5.8",
+      "name": "Target Size (Minimum)",
+      "requires": "A target for a pointer, such as a button, is at least 24 by 24 CSS pixels, or has enough space around it, with some exceptions.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html"
+    },
+    {
+      "criterion": "4.1.2",
+      "name": "Name, Role, Value",
+      "requires": "Every control has a name and a role that software can read, and assistive technologies can read its states and values, set those that the user can set, and are told when they change.",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html"
+    }
+  ],
+  "notChecked": ["2.1.2", "2.4.3", "2.4.7", "2.4.11"],
+  "truncated": false,
+  "leftOut": []
+}

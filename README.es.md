@@ -8,7 +8,7 @@ Este repositorio tendrá un banco de pruebas que responda a esa pregunta y uno d
 
 ## Estado
 
-En sus inicios. Todavía no hay auditoría ni banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y un esqueleto del servidor.
+En sus inicios. Todavía no hay banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y el servidor con su primera herramienta, `audit_route`, que audita una página local con axe-core.
 
 ## Qué medirá
 
@@ -34,7 +34,7 @@ Las partes y cómo dependen unas de otras están en [docs/architecture.md](docs/
 
 ## Qué no es
 
-- **No es un auditor completo de WCAG.** Las comprobaciones automáticas solo encuentran una parte de los problemas de accesibilidad de una página. Los doce criterios que comprobará el servidor están en [docs/wcag-2.2-scope.md](docs/wcag-2.2-scope.md).
+- **No es un auditor completo de WCAG.** Las comprobaciones automáticas solo encuentran una parte de los problemas de accesibilidad de una página. Los doce criterios que cubre el servidor están en [docs/wcag-2.2-scope.md](docs/wcag-2.2-scope.md).
 - **Solo Angular.** La aplicación de referencia y los defectos son código Angular.
 - **Solo Claude Code hasta la v1.0.0.** Otros agentes pueden llegar después.
 - **Solo páginas locales.** El servidor audita páginas servidas desde la misma máquina.

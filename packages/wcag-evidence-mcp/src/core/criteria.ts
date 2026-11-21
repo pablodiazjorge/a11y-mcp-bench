@@ -16,10 +16,10 @@ export const criterionSchema = z.object({
   /** The criterion's Understanding page at the W3C. */
   understanding: z.url({ protocol: /^https$/, hostname: /^www\.w3\.org$/ }),
   /**
-   * How the server decides it: with axe-core rules, with a check of its own, or with a check of
-   * its own that is a heuristic, whose findings say so.
+   * How the server decides it: with axe-core rules, with a check of its own, with a check of its
+   * own that is a heuristic, whose findings say so, or with axe-core rules and such a heuristic.
    */
-  decidedBy: z.enum(['axe-core', 'own-check', 'heuristic']),
+  decidedBy: z.enum(['axe-core', 'own-check', 'heuristic', 'axe-core-and-heuristic']),
   /** Whether a person has to confirm the server's findings. `null` until the check is designed. */
   class: z.enum(['automatic', 'semi-automatic']).nullable(),
 });
@@ -77,7 +77,7 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     level: 'A',
     requires: 'Everything on the page can be done with a keyboard.',
     understanding: understanding('keyboard'),
-    decidedBy: 'heuristic',
+    decidedBy: 'axe-core-and-heuristic',
     class: 'semi-automatic',
   },
   {

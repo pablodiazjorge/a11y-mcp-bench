@@ -319,6 +319,42 @@ describe('WebRTC', { timeout: TIMEOUT_MS }, () => {
   });
 });
 
+describe('a page that goes to another document after it loaded', { timeout: TIMEOUT_MS }, () => {
+  // A page with a defect that sends the browser elsewhere once it has loaded.
+  const leaving = (go: string): string =>
+    `<title>leaving</title><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"><script>addEventListener('load', () => { ${go} });</script>`;
+
+  it.each([
+    [
+      '/leaving-blank',
+      'to about:blank, after a moment',
+      "setTimeout(() => { location.href = 'about:blank'; }, 400);",
+    ],
+    [
+      '/leaving-later',
+      'to a clean local page, after a moment',
+      "setTimeout(() => { location.href = '/clean'; }, 400);",
+    ],
+    ['/leaving-now', 'to a clean local page, at once', "location.href = '/clean';"],
+  ])('fails with navigated when %s goes %s', async (path, _case, go) => {
+    site.page('/clean', '<title>clean</title>');
+    site.page(path, leaving(go));
+
+    expect(await look(`${site.origin}${path}`)).toStrictEqual({
+      ok: false,
+      failure: { reason: 'navigated' },
+    });
+  });
+
+  it('is audited when it only changes its URL within the same document, as a router does', async () => {
+    site.page('/routing', leaving("history.pushState({}, '', '/routed');"));
+
+    const visit = seen(await look(`${site.origin}/routing`, 'location.pathname'));
+
+    expect(visit.value).toBe('/routed');
+  });
+});
+
 describe('the address of the page', { timeout: TIMEOUT_MS }, () => {
   it('must be the local machine, even when a name resolves to another address', async () => {
     // Told to resolve `localhost` to 127.0.0.2, Chromium stands for a resolver that let a name

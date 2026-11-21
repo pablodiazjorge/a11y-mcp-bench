@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Reference page</title>
+    <style>
+      /* Every element that fails has a fixed place and size, so no rectangle depends on fonts. */
+      body {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 16px;
+      }
+      .box {
+        position: absolute;
+        display: block;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- 1.4.3: grey text on white, 2.84:1 -->
+      <p
+        id="price"
+        class="box"
+        style="
+          left: 10px;
+          top: 10px;
+          width: 200px;
+          height: 20px;
+          font-size: 14px;
+          color: #999999;
+          background: #ffffff;
+        "
+      >
+        Price
+      </p>
+      <!-- 1.4.3, twice: two components whose selectors differ only by Angular's style attribute -->
+      <div _nghost-ng-c1111111111="">
+        <span
+          _ngcontent-ng-c1111111111=""
+          class="box"
+          style="
+            left: 10px;
+            top: 40px;
+            width: 100px;
+            height: 20px;
+            color: #aaaaaa;
+            background: #ffffff;
+          "
+          >One</span
+        >
+      </div>
+      <div _nghost-ng-c2222222222="">
+        <span
+          _ngcontent-ng-c2222222222=""
+          class="box"
+          style="
+            left: 120px;
+            top: 40px;
+            width: 100px;
+            height: 20px;
+            color: #aaaaaa;
+            background: #ffffff;
+          "
+          >Two</span
+        >
+      </div>
+      <!-- Not a finding: contrast over a gradient, which axe-core can only ask a person to review -->
+      <p
+        class="box"
+        style="
+          left: 230px;
+          top: 10px;
+          width: 100px;
+          height: 20px;
+          color: #777777;
+          background-image: linear-gradient(#ffffff, #eeeeee);
+        "
+      >
+        Review
+      </p>
+      <!-- 1.1.1: an image without a text alternative -->
+      <img
+        class="box logo"
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        style="left: 10px; top: 70px; width: 30px; height: 30px"
+      />
+      <!-- 4.1.2: a button without a name, inside an element with a numbered id -->
+      <div id="cdk-dialog-0">
+        <button class="box" style="left: 50px; top: 70px; width: 40px; height: 30px"></button>
+      </div>
+      <!-- 2.4.4 and 4.1.2: a link without text -->
+      <a
+        href="/more"
+        class="box more"
+        style="left: 100px; top: 70px; width: 30px; height: 30px"
+      ></a>
+      <!-- 2.5.8: two targets of 10 by 10 pixels, 2 pixels apart -->
+      <button
+        aria-label="Smaller"
+        class="box"
+        style="left: 10px; top: 110px; width: 10px; height: 10px"
+      ></button>
+      <button
+        aria-label="Larger"
+        class="box"
+        style="left: 22px; top: 110px; width: 10px; height: 10px"
+      ></button>
+      <!-- 2.1.1, and 2.1.3 at level AAA: a scrolling list that the keyboard cannot reach -->
+      <ul
+        class="box scroller"
+        style="left: 10px; top: 130px; width: 100px; height: 40px; overflow-y: scroll"
+      >
+        <li>One</li>
+        <li>Two</li>
+        <li>Three</li>
+        <li>Four</li>
+      </ul>
+    </main>
+  </body>
+</html>

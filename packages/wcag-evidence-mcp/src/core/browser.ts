@@ -22,8 +22,20 @@ export interface LoadedPage {
   readonly url: string;
   /** The HTTP status of the page's document. */
   readonly status: number;
+  /**
+   * Whether, after `load`, the page went a short while with no change to its DOM and no request in
+   * flight before the browser's wait ran out. Content that arrives later, such as on a timer, can
+   * still be missing.
+   */
+  readonly settled: boolean;
   /** Runs `script` in the page and returns its result, which must be serializable as JSON. */
   evaluate(script: string): Promise<unknown>;
+  /**
+   * Runs `script` in a world of its own: it shares the page's DOM, but none of the page's
+   * JavaScript, so a script of the page cannot replace or change what this one uses. The result
+   * must be serializable as JSON.
+   */
+  evaluateIsolated(script: string): Promise<unknown>;
   /** The requests that the URL policy refused so far, in the order the page made them. */
   refusedRequests(): readonly RefusedRequest[];
 }
@@ -34,6 +46,11 @@ export type VisitFailure =
   | { readonly reason: 'url-policy'; readonly url: string; readonly rejection: UrlRejection }
   /** The document came from an address other than `127.0.0.1` or `::1`, or from none. */
   | { readonly reason: 'not-local'; readonly address: string }
+  /**
+   * The page went to another document after the one asked for had loaded, as through a redirect
+   * in a script. The new document is not audited: it passed neither layer 3 nor the status check.
+   */
+  | { readonly reason: 'navigated' }
   /** The browser could not load the page, as when nothing listens on the port. */
   | { readonly reason: 'load-failed'; readonly message: string }
   /** The page did not load in time, or the whole visit took too long. */
