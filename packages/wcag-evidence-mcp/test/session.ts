@@ -7,9 +7,10 @@ import {
   PROTOCOL_VERSION_META_KEY,
   type JSONRPCMessage,
 } from '@modelcontextprotocol/server';
+import type { ServerDependencies } from '../src/adapters/mcp/factory.ts';
 import { serve } from '../src/adapters/mcp/serve.ts';
 import type { ServerIdentity } from '../src/core/identity.ts';
-import { createBrowserDouble } from './browser-double.ts';
+import { createBrowserDouble, createRuleEngineDouble } from './browser-double.ts';
 
 export const IDENTITY: ServerIdentity = { name: 'test-server', version: '1.2.3' };
 export const MODERN_VERSION = '2026-07-28';
@@ -39,15 +40,20 @@ function isResponse(message: JSONRPCMessage): message is JSONRPCMessage & Respon
 /**
  * Opens one connection to the server. A legacy session opens with the 2025 `initialize`
  * handshake for `version`; a modern session sends each request with the 2026-07-28 `_meta`
- * envelope.
+ * envelope. The browser and the rule engine are doubles unless `ports` gives others.
  */
-export async function openSession(era: Era, version = MODERN_VERSION): Promise<Session> {
+export async function openSession(
+  era: Era,
+  version = MODERN_VERSION,
+  ports: Partial<Pick<ServerDependencies, 'browser' | 'ruleEngine'>> = {},
+): Promise<Session> {
   const [client, server] = InMemoryTransport.createLinkedPair();
   const logs: string[] = [];
   const handle = serve({
     identity: IDENTITY,
     log: (line) => logs.push(line),
-    browser: createBrowserDouble(),
+    browser: ports.browser ?? createBrowserDouble(),
+    ruleEngine: ports.ruleEngine ?? createRuleEngineDouble(),
     transport: server,
   });
   const waiting = new Map<string | number, (response: Response) => void>();

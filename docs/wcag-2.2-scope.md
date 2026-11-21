@@ -1,6 +1,6 @@
 # WCAG 2.2 scope
 
-The server's audit tools will check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The tools are not built yet; this page fixes what they will check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
+The server's audit tools check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The first tool, `audit_route`, runs the axe-core rules; the server's own checks are not built yet. This page fixes what the tools check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
 
 The criteria and their wording come from the [WCAG 2.2 W3C Recommendation](https://www.w3.org/TR/WCAG22/) of 12 December 2024. The rule identifiers come from axe-core 4.14.0 (the open-source library of automatic accessibility checks that the server runs), the version that the counts on this page come from. Both were checked on 2026-11-20. Why the server exists and why it stays small is in [ADR 0001](adr/0001-scope-and-non-goals.md); what a finding looks like is in [ADR 0004](adr/0004-server-architecture.md).
 
@@ -26,13 +26,13 @@ Even an automatic criterion has a part that the server cannot check, listed belo
 | [2.4.4 Link Purpose (In Context)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html)        | A     | axe-core rules                                       | Automatic      |
 | [4.1.2 Name, Role, Value](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html)                        | A     | axe-core rules                                       | Automatic      |
 | [2.5.8 Target Size (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)                | AA    | axe-core rule `target-size`, turned on               | Semi-automatic |
-| [2.1.1 Keyboard](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html)                                        | A     | Own check, a heuristic                               | Semi-automatic |
+| [2.1.1 Keyboard](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html)                                        | A     | Three axe-core rules, and an own check, a heuristic  | Semi-automatic |
 | [2.1.2 No Keyboard Trap](https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html)                        | A     | Own check, a heuristic                               | Semi-automatic |
 | [2.4.3 Focus Order](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html)                                  | A     | Own check, a heuristic                               | Semi-automatic |
 | [2.4.7 Focus Visible](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html)                              | AA    | Own check, set when the keyboard checks are designed | Not set yet    |
 | [2.4.11 Focus Not Obscured (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) | AA    | Own check, set when the keyboard checks are designed | Not set yet    |
 
-axe-core decides the first six criteria. The rules listed for each are those that carry the criterion's tag and that axe-core 4.14.0 runs by default. The exact set of rules that the server runs is fixed when the audit tool is built.
+axe-core decides the first six criteria. The rules listed for each are those that carry the criterion's tag and that axe-core 4.14.0 runs by default. `audit_route` runs those rules, `target-size` for 2.5.8 and the three rules tagged 2.1.1, and no experimental rule. It reports failures only: what axe-core marks for review is left out.
 
 ### 1.1.1 Non-text Content (A)
 
@@ -79,9 +79,9 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 ### 2.1.1 Keyboard (A)
 
 - **Requires:** everything on the page can be done with a keyboard.
-- **Own check (a heuristic):** an element that responds to a click but that Tab does not reach.
+- **Own check (a heuristic), to come with the keyboard checks:** an element that responds to a click but that Tab does not reach.
 - **Manual:** functions that the heuristic cannot see, such as a menu that opens only on hover or a widget that needs arrow keys.
-- **axe-core:** version 4.14.0 also tags three of its default rules with 2.1.1: `frame-focusable-content`, `scrollable-region-focusable` and `server-side-image-map`. Whether the server reports them is decided when the audit tool is built.
+- **axe-core:** version 4.14.0 also tags three of its default rules with 2.1.1: `frame-focusable-content`, `scrollable-region-focusable` and `server-side-image-map`. `audit_route` runs them and reports them as the automatic part of 2.1.1, under 2.1.1 alone: `scrollable-region-focusable` also carries 2.1.3, at level AAA, which a finding does not list.
 
 ### 2.1.2 No Keyboard Trap (A)
 

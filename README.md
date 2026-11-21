@@ -8,7 +8,7 @@ This repository will hold a benchmark that answers that question, and one of the
 
 ## Status
 
-Early. There is no audit or benchmark to run yet: the repository holds the tooling, continuous integration (CI), the project rules and a skeleton of the server.
+Early. There is no benchmark to run yet: the repository holds the tooling, continuous integration (CI), the project rules and the server with its first tool, `audit_route`, which audits one local page with axe-core.
 
 ## What it will measure
 
@@ -34,7 +34,7 @@ The parts and how they depend on each other are in [docs/architecture.md](docs/a
 
 ## What it is not
 
-- **Not a complete WCAG auditor.** Automatic checks find only part of the accessibility problems of a page. The twelve criteria that the server will check are listed in [docs/wcag-2.2-scope.md](docs/wcag-2.2-scope.md).
+- **Not a complete WCAG auditor.** Automatic checks find only part of the accessibility problems of a page. The twelve criteria that the server covers are listed in [docs/wcag-2.2-scope.md](docs/wcag-2.2-scope.md).
 - **Only Angular.** The reference app and the defects are Angular code.
 - **Only Claude Code until v1.0.0.** Other agents may come later.
 - **Only local pages.** The server audits pages served from the same machine.

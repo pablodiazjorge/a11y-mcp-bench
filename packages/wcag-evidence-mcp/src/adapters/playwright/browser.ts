@@ -1,9 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import {
   chromium,
   errors,
   type Browser,
   type BrowserContext,
+  type CDPSession,
   type LaunchOptions,
+  type Page,
   type Request,
 } from 'playwright-core';
 import type {
@@ -41,6 +44,11 @@ export interface PlaywrightBrowserOptions {
   readonly loadTimeoutMs?: number;
   /** How long a whole visit may take, the caller's work on the page included. 2 minutes by default. */
   readonly visitTimeoutMs?: number;
+  /**
+   * How long to wait, after `load`, for the page to stop changing. 10 seconds by default, and never
+   * more than half of what is left of the visit.
+   */
+  readonly settleTimeoutMs?: number;
   /** Starts Chromium. Tests pass their own, to keep a handle on the browser. */
   readonly launch?: (options: LaunchOptions) => Promise<Browser>;
 }
@@ -56,6 +64,7 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
   const launchTimeoutMs = options.launchTimeoutMs ?? 30_000;
   const loadTimeoutMs = options.loadTimeoutMs ?? 30_000;
   const visitTimeoutMs = options.visitTimeoutMs ?? 120_000;
+  const settleTimeoutMs = options.settleTimeoutMs ?? 10_000;
   let started: Promise<Browser> | undefined;
   let closed = false;
 
@@ -78,7 +87,11 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
     return starting;
   }
 
-  async function open(context: BrowserContext, url: string): Promise<Visit<LoadedPage>> {
+  async function open(
+    context: BrowserContext,
+    url: string,
+    deadline: number,
+  ): Promise<Visit<LoadedPage>> {
     const refused: RefusedRequest[] = [];
     let documentHop: RefusedRequest | undefined;
     const refuse = (entry: RefusedRequest): void => {
@@ -115,6 +128,8 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
       },
     );
     const page = await context.newPage();
+    const network = watchNetwork(context);
+    const documents = await watchDocuments(context, page);
     // A hop of a redirect is only reported, after the browser has asked for it.
     context.on('request', (request: Request) => {
       if (request.redirectedFrom() === null) return;
@@ -144,12 +159,25 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
     if (address === null || !isLocalAddress(address.ipAddress)) {
       return failed({ reason: 'not-local', address: address?.ipAddress ?? 'none' });
     }
+    // A page that went to another document after it loaded is not the page asked for: its new
+    // document has passed neither layer 3 nor the check of its status. It is not followed.
+    if (documents.changed()) return failed({ reason: 'navigated' });
+    const isolated = await isolatedWorld(documents);
+    const settling = await settle(
+      isolated,
+      network,
+      documents,
+      Math.min(settleTimeoutMs, (deadline - Date.now()) / 2),
+    );
+    if (settling === 'navigated') return failed({ reason: 'navigated' });
     return {
       ok: true,
       value: {
         url: response.url(),
         status: response.status(),
+        settled: settling === 'settled',
         evaluate: (script) => page.evaluate<unknown>(script),
+        evaluateIsolated: isolated,
         refusedRequests: () => [...refused],
       },
     };
@@ -165,8 +193,10 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
 
       let running: Browser;
       let context: BrowserContext;
+      let deadline: number;
       try {
         running = await browser();
+        deadline = Date.now() + visitTimeoutMs;
         context = await running.newContext({ serviceWorkers: 'block', acceptDownloads: false });
       } catch (error) {
         return failed({ reason: 'browser-unavailable', message: firstLine(error) });
@@ -206,10 +236,14 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
           () => true,
         );
         const gone = contextGone.then(() => true);
-        return within(Promise.race([answered, gone, expired.then(() => false)]), SETTLE_MS, false);
+        return within(
+          Promise.race([answered, gone, expired.then(() => false)]),
+          CONTEXT_MARGIN_MS,
+          false,
+        );
       };
       try {
-        const page = await Promise.race([open(context, asked.url), expired]);
+        const page = await Promise.race([open(context, asked.url, deadline), expired]);
         if (page === 'expired' || timedOut) return failed({ reason: 'timeout' });
         if (!page.ok) {
           const gone = await browserGone();
@@ -221,6 +255,7 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
         return { ok: true, value: outcome.value };
       } catch (error) {
         if (timedOut) return failed({ reason: 'timeout' });
+        if (error instanceof PageNavigated) return failed({ reason: 'navigated' });
         const gone = await browserGone();
         if (timedOut) return failed({ reason: 'timeout' });
         if (gone) return closedDuringVisit();
@@ -231,7 +266,7 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
         // A browser that closed, crashed or stopped answering may never close the context.
         await within(
           Promise.race([context.close().catch(() => undefined), contextGone]),
-          SETTLE_MS,
+          CONTEXT_MARGIN_MS,
           undefined,
         );
       }
@@ -249,9 +284,136 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
   };
 }
 
+const WORLD_NAME = 'wcag-evidence-mcp';
+
+/**
+ * A world of its own in the page's main frame, through the DevTools Protocol. It shares the DOM,
+ * which is all that axe-core and the wait need, but none of the page's JavaScript: a page that
+ * replaces `window.axe`, `Array.prototype.map` or `MutationObserver` changes only its own world.
+ */
+async function isolatedWorld(
+  documents: DocumentWatch,
+): Promise<(script: string) => Promise<unknown>> {
+  const { session } = documents;
+  const { frameTree } = await session.send('Page.getFrameTree');
+  const created = await session.send('Page.createIsolatedWorld', {
+    frameId: frameTree.frame.id,
+    worldName: WORLD_NAME,
+  });
+  return async (script) => {
+    let evaluated;
+    try {
+      evaluated = await session.send('Runtime.evaluate', {
+        expression: script,
+        contextId: created.executionContextId,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+    } catch (error) {
+      // A new document ends the world, and the world is not made again for it.
+      if (documents.changed()) throw new PageNavigated();
+      throw error;
+    }
+    if (evaluated.exceptionDetails !== undefined) {
+      throw new Error('the script failed in the isolated world');
+    }
+    const value: unknown = evaluated.result.value;
+    return value;
+  };
+}
+
+/** The page's main frame went to another document after the one asked for had loaded. */
+class PageNavigated extends Error {
+  constructor() {
+    super('the page went to another document after it loaded');
+  }
+}
+
+interface DocumentWatch {
+  readonly session: CDPSession;
+  /** Whether the main frame has gone to another document since the one asked for. */
+  changed(): boolean;
+}
+
+/**
+ * Counts the documents that the page's main frame commits. The DevTools Protocol reports a new
+ * document (`Page.frameNavigated`) apart from a change of URL within one, which is how an Angular
+ * router moves, so only a new document counts. The first is the document asked for.
+ */
+async function watchDocuments(context: BrowserContext, page: Page): Promise<DocumentWatch> {
+  const session = await context.newCDPSession(page);
+  let documents = 0;
+  session.on('Page.frameNavigated', ({ frame }) => {
+    if (frame.parentId === undefined) documents += 1;
+  });
+  await session.send('Page.enable');
+  return { session, changed: () => documents > 1 };
+}
+
+// A page counts as settled once its DOM has not changed, and none of its requests has been in
+// flight, for this long: the quiet time that Playwright's `networkidle` wait uses.
+const SETTLE_WINDOW_MS = 500;
+const SETTLE_POLL_MS = 100;
+
+interface Network {
+  /** How long no request of the context has been in flight, or 0 while one is. */
+  idleFor(): number;
+}
+
+function watchNetwork(context: BrowserContext): Network {
+  const inflight = new Set<Request>();
+  let lastActivity = Date.now();
+  context.on('request', (request: Request) => {
+    inflight.add(request);
+    lastActivity = Date.now();
+  });
+  const ended = (request: Request): void => {
+    inflight.delete(request);
+    lastActivity = Date.now();
+  };
+  context.on('requestfinished', ended);
+  context.on('requestfailed', ended);
+  return { idleFor: () => (inflight.size > 0 ? 0 : Date.now() - lastActivity) };
+}
+
+/**
+ * Waits, after `load`, until the page stops changing: an Angular app starts after `load` and
+ * often fills a route with data that it asks for later. Gives false when `waitMs` runs out first,
+ * so that the audit says it read a page that was still changing.
+ */
+async function settle(
+  isolated: (script: string) => Promise<unknown>,
+  network: Network,
+  documents: DocumentWatch,
+  waitMs: number,
+): Promise<'settled' | 'unsettled' | 'navigated'> {
+  // The observer lives in the isolated world, where no script of the page can reach it.
+  const key = JSON.stringify(`__settle_${randomUUID()}`);
+  const quietFor = `(() => {
+    if (!Object.hasOwn(window, ${key})) {
+      const state = { last: performance.now() };
+      new MutationObserver(() => { state.last = performance.now(); }).observe(document, {
+        subtree: true, childList: true, attributes: true, characterData: true,
+      });
+      Object.defineProperty(window, ${key}, { value: state });
+    }
+    return performance.now() - window[${key}].last;
+  })()`;
+  const until = Date.now() + waitMs;
+  for (;;) {
+    const domQuietFor = await isolated(quietFor).catch(() => 0);
+    if (documents.changed()) return 'navigated';
+    const quiet = typeof domQuietFor === 'number' && domQuietFor >= SETTLE_WINDOW_MS;
+    if (quiet && network.idleFor() >= SETTLE_WINDOW_MS) return 'settled';
+    const left = until - Date.now();
+    if (left <= 0) return 'unsettled';
+    await new Promise((resolve) => setTimeout(resolve, Math.min(SETTLE_POLL_MS, left)));
+  }
+}
+
 // How long a context may take to answer or to close once a visit has its outcome. A visit never
 // takes longer than its limit and this.
-const SETTLE_MS = 1_000;
+const CONTEXT_MARGIN_MS = 1_000;
 
 /** Settles as `promise` does, or with `fallback` after `ms` milliseconds. */
 async function within<T, F>(promise: Promise<T>, ms: number, fallback: F): Promise<T | F> {

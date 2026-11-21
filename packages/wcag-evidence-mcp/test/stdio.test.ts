@@ -12,7 +12,8 @@ const TIMEOUT_MS = 20_000;
 const CLIENT_INFO = { name: 'test-client', version: '0.0.0' };
 
 const CALL = { jsonrpc: '2.0', id: 2, method: 'tools/call' };
-const ARGUMENTS = { name: 'server_info', arguments: {} };
+// A URL that the first layer of the URL policy refuses, so the answer needs no browser.
+const ARGUMENTS = { name: 'audit_route', arguments: { url: 'http://127.1:4200/' } };
 
 /** What each era sends: the 2025 handshake and then the call, or the call with its envelope. */
 const MESSAGES = {
@@ -40,7 +41,6 @@ const MESSAGES = {
     },
   ],
 };
-const VERSION = { legacy: '2025-06-18', modern: '2026-07-28' };
 
 interface Server {
   readonly child: ChildProcessWithoutNullStreams;
@@ -107,16 +107,12 @@ it.each(['legacy', 'modern'] as const)(
     );
     for (const message of messages) expect(message).toMatchObject({ jsonrpc: '2.0' });
     expect(messages.find((message) => message.id === 2)).toMatchObject({
-      result: {
-        structuredContent: { name: 'wcag-evidence-mcp', protocolVersion: VERSION[era] },
-      },
+      result: { isError: true, content: [{ type: 'text' }] },
     });
     const { stderr } = output;
     expect(stderr).toContain('[wcag-evidence-mcp] serving MCP over stdio');
     expect(stderr).toContain(`[wcag-evidence-mcp] new server instance for the ${era} protocol era`);
-    expect(stderr).toContain(
-      `[wcag-evidence-mcp] server_info called over protocol ${VERSION[era]}`,
-    );
+    expect(stderr).toContain('[wcag-evidence-mcp] audit_route did not open the page: url-policy');
   },
   TIMEOUT_MS + 5_000,
 );

@@ -2,14 +2,16 @@ import { McpServer, type McpServerFactory } from '@modelcontextprotocol/server';
 import type { BrowserPort } from '../../core/browser.ts';
 import type { ServerIdentity } from '../../core/identity.ts';
 import type { Log } from '../../core/log.ts';
-import { registerServerInfoTool } from './server-info-tool.ts';
+import type { RuleEngine } from '../../core/rule-engine.ts';
+import { registerAuditRouteTool } from './audit-route-tool.ts';
 
 /** What every server instance shares. Anything with state is created once, outside the factory. */
 export interface ServerDependencies {
   readonly identity: ServerIdentity;
   readonly log: Log;
-  /** One browser for every connection and call. No tool opens a page yet; `audit_route` will. */
+  /** One browser for every connection and call. */
   readonly browser: BrowserPort;
+  readonly ruleEngine: RuleEngine;
 }
 
 /**
@@ -19,11 +21,11 @@ export interface ServerDependencies {
  * opens nothing and keeps no state of its own.
  */
 export function createServerFactory(dependencies: ServerDependencies): McpServerFactory {
-  const { identity, log } = dependencies;
+  const { identity, log, browser, ruleEngine } = dependencies;
   return ({ era }) => {
     log(`new server instance for the ${era} protocol era`);
     const server = new McpServer({ name: identity.name, version: identity.version });
-    registerServerInfoTool(server, identity, log);
+    registerAuditRouteTool(server, { browser, engine: ruleEngine }, log);
     return server;
   };
 }

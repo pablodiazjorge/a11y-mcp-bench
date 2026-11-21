@@ -9,7 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createStreamLog } from '../src/adapters/log-stream/stream-log.ts';
 import { serveProcess, type StdioProcess } from '../src/adapters/mcp/serve.ts';
 import { readPackageIdentity } from '../src/adapters/package-json/read-identity.ts';
-import { createBrowserDouble } from './browser-double.ts';
+import { createBrowserDouble, createRuleEngineDouble } from './browser-double.ts';
 
 describe('createStreamLog', () => {
   it('writes each message as one prefixed line to the sink it is given', () => {
@@ -71,7 +71,12 @@ describe('serveProcess', () => {
     const process: StdioProcess = { stdin, stdout };
     const browser = createBrowserDouble();
     serveProcess(
-      { identity: { name: 'x', version: '1.0.0' }, log: (line) => logs.push(line), browser },
+      {
+        identity: { name: 'x', version: '1.0.0' },
+        log: (line) => logs.push(line),
+        browser,
+        ruleEngine: createRuleEngineDouble(),
+      },
       process,
     );
     return { logs, stdin, stdout, process, browser };

@@ -22,6 +22,7 @@ const DECIDED_BY = new Map<string, Criterion['decidedBy']>([
   ['axe-core rule', 'axe-core'],
   ['axe-core rule `target-size`, turned on', 'axe-core'],
   ['Own check, a heuristic', 'heuristic'],
+  ['Three axe-core rules, and an own check, a heuristic', 'axe-core-and-heuristic'],
   ['Own check, set when the keyboard checks are designed', 'own-check'],
 ]);
 const CLASS = new Map<string, Criterion['class']>([

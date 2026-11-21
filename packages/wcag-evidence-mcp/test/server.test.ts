@@ -1,4 +1,5 @@
-// Both protocol eras, served in process: what a client sees when it lists and calls tools.
+// Both protocol eras, served in process: what a client sees when it lists and calls `audit_route`.
+// The browser and the rule engine are doubles here; audit-reference.test.ts runs the real ones.
 
 import { PassThrough } from 'node:stream';
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
@@ -6,7 +7,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import { createServerFactory } from '../src/adapters/mcp/factory.ts';
 import { serve } from '../src/adapters/mcp/serve.ts';
-import { createBrowserDouble } from './browser-double.ts';
+import { CRITERION_IDS } from '../src/core/audit.ts';
+import type { VisitFailure } from '../src/core/browser.ts';
+import type { EngineFinding } from '../src/core/rule-engine.ts';
+import {
+  createBrowserDouble,
+  createRuleEngineDouble,
+  pageDouble,
+  type BrowserDouble,
+} from './browser-double.ts';
 import { IDENTITY, MODERN_VERSION, openSession, type Era, type Session } from './session.ts';
 
 interface ListedTool {
@@ -23,25 +32,21 @@ interface ToolResult {
   isError?: boolean;
 }
 
-const OUTPUT_SCHEMA = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  type: 'object',
-  properties: {
-    name: { type: 'string', description: 'The package name of the server' },
-    version: { type: 'string', description: 'The package version of the server' },
-    protocolVersion: {
-      type: 'string',
-      description: 'The MCP protocol revision of the current connection',
-    },
-  },
-  required: ['name', 'version', 'protocolVersion'],
-  additionalProperties: false,
+const FINDING: EngineFinding = {
+  rule: 'image-alt',
+  selector: 'img.logo',
+  rect: { x: 10, y: 20, width: 30, height: 40 },
+  documentIndex: 7,
+  measurement: { kind: 'failed-checks', checks: ['has-alt', 'aria-label'] },
 };
 
 const sessions: Session[] = [];
 
-async function open(era: Era, version: string): Promise<Session> {
-  const session = await openSession(era, version);
+async function open(era: Era, version: string, browser?: BrowserDouble): Promise<Session> {
+  const session = await openSession(era, version, {
+    browser: browser ?? createBrowserDouble(pageDouble()),
+    ruleEngine: createRuleEngineDouble([FINDING]),
+  });
   sessions.push(session);
   return session;
 }
@@ -50,52 +55,84 @@ afterEach(async () => {
   await Promise.all(sessions.splice(0).map((session) => session.close()));
 });
 
-async function listServerInfo(session: Session): Promise<ListedTool> {
+async function listAuditRoute(session: Session): Promise<ListedTool> {
   const listed = await session.request('tools/list');
   const tools = (listed.result?.tools ?? []) as ListedTool[];
-  const tool = tools.find((candidate) => candidate.name === 'server_info');
-  if (tool === undefined) throw new Error(`server_info is not listed: ${JSON.stringify(listed)}`);
+  expect(tools.map(({ name }) => name)).toStrictEqual(['audit_route']);
+  const [tool] = tools;
+  if (tool === undefined) throw new Error('audit_route is not listed');
   return tool;
 }
 
-async function callServerInfo(session: Session, meta?: Record<string, unknown>) {
-  const params = { name: 'server_info', arguments: {}, ...(meta && { _meta: meta }) };
-  return (await session.request('tools/call', params)).result as ToolResult;
+async function callAuditRoute(session: Session, args: Record<string, unknown>) {
+  const called = await session.request('tools/call', { name: 'audit_route', arguments: args });
+  return called.result as ToolResult;
 }
 
-// Two 2025 revisions, so that a server reporting one fixed revision fails.
+// Two 2025 revisions and the 2026-07-28 one.
 describe.each<[Era, string]>([
   ['legacy', '2025-03-26'],
   ['legacy', '2025-11-25'],
   ['modern', MODERN_VERSION],
 ])('a %s client on %s', (era, version) => {
-  it('lists server_info as a read-only tool with an input and an output schema', async () => {
-    const tool = await listServerInfo(await open(era, version));
+  it('lists audit_route alone, read-only, with an input and an output schema', async () => {
+    const tool = await listAuditRoute(await open(era, version));
 
-    expect(tool.title).toBe('Server info');
+    expect(tool.title).toBe('Audit route');
     expect(tool.annotations).toStrictEqual({
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
     });
-    expect(tool.inputSchema).toMatchObject({ type: 'object', properties: {} });
-    expect(tool.outputSchema).toStrictEqual(OUTPUT_SCHEMA);
+    expect(tool.inputSchema).toMatchObject({
+      type: 'object',
+      properties: {
+        url: { type: 'string' },
+        criteria: { type: 'array', items: { enum: [...CRITERION_IDS] } },
+      },
+      required: ['url'],
+    });
+    expect(Object.keys(tool.outputSchema?.properties ?? {})).toStrictEqual([
+      'page',
+      'findings',
+      'definitions',
+      'notChecked',
+      'truncated',
+      'leftOut',
+    ]);
   });
 
   it('gets structured content that matches the listed output schema, and the same JSON as text', async () => {
     const session = await open(era, version);
-    const tool = await listServerInfo(session);
-    const result = await callServerInfo(session);
+    const tool = await listAuditRoute(session);
+    const result = await callAuditRoute(session, { url: 'http://localhost:4200/catalog' });
 
     expect(result.isError).not.toBe(true);
-    expect(result.structuredContent).toStrictEqual({ ...IDENTITY, protocolVersion: version });
+    expect(result.structuredContent).toMatchObject({
+      findings: [{ rule: 'image-alt', criteria: ['1.1.1'], location: { selector: 'img.logo' } }],
+      definitions: [{ criterion: '1.1.1', name: 'Non-text Content' }],
+      notChecked: ['2.1.2', '2.4.3', '2.4.7', '2.4.11'],
+      truncated: false,
+      leftOut: [],
+    });
     const listedSchema = z.fromJSONSchema(tool.outputSchema ?? {});
     expect(listedSchema.safeParse(result.structuredContent).success).toBe(true);
-
     const texts = (result.content ?? []).filter((block) => block.type === 'text');
     expect(texts).toHaveLength(1);
     expect(JSON.parse(texts[0]?.text ?? 'null')).toStrictEqual(result.structuredContent);
+  });
+
+  it('refuses a URL that fails the URL policy, with an error and no findings', async () => {
+    const browser = createBrowserDouble(pageDouble());
+    const session = await open(era, version, browser);
+
+    const result = await callAuditRoute(session, { url: 'http://127.1:4200/' });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
+    expect(result.content?.[0]?.text).toContain('(not-as-written)');
+    expect(session.logs).toContain('audit_route did not open the page: url-policy');
   });
 
   it('answers an unknown tool with an error', async () => {
@@ -107,25 +144,121 @@ describe.each<[Era, string]>([
     expect(called.error?.message).toContain('no_such_tool');
   });
 
-  it('logs the instance it builds for the era', async () => {
+  it('logs the instance it builds for the era and what the tool returned', async () => {
     const session = await open(era, version);
-    await callServerInfo(session);
+    await callAuditRoute(session, { url: 'http://localhost:4200/' });
 
     expect(session.logs).toContain('serving MCP over stdio');
     expect(session.logs).toContain(`new server instance for the ${era} protocol era`);
-    expect(session.logs).toContain(`server_info called over protocol ${version}`);
+    expect(session.logs).toContain('audit_route returned 1 findings');
   });
 });
 
-describe('a legacy client that claims a revision in _meta', () => {
-  it('gets the revision agreed in initialize, not the one it claims', async () => {
-    const session = await open('legacy', '2025-06-18');
-    const result = await callServerInfo(session, {
-      'io.modelcontextprotocol/protocolVersion': '2099-01-01',
+describe('audit_route', () => {
+  it('passes the filter by criterion to the audit', async () => {
+    const session = await open('modern', MODERN_VERSION);
+
+    const result = await callAuditRoute(session, {
+      url: 'http://localhost:4200/',
+      criteria: ['1.4.3', '2.4.7'],
     });
 
-    expect(result.structuredContent).toMatchObject({ protocolVersion: '2025-06-18' });
-    expect(session.logs).not.toContain('server_info called over protocol 2099-01-01');
+    expect(result.structuredContent).toStrictEqual({
+      page: { status: 200, refusedRequests: 0, settled: true },
+      findings: [],
+      definitions: [],
+      notChecked: ['2.4.7'],
+      truncated: false,
+      leftOut: [],
+    });
+  });
+
+  it('refuses a criterion that is not one of the twelve', async () => {
+    const session = await open('modern', MODERN_VERSION);
+    const called = await session.request('tools/call', {
+      name: 'audit_route',
+      arguments: { url: 'http://localhost:4200/', criteria: ['2.1.3'] },
+    });
+
+    const refused =
+      called.error !== undefined || (called.result as ToolResult | undefined)?.isError === true;
+    expect(refused).toBe(true);
+  });
+
+  it('gives an error, not an empty audit, when the rule engine cannot read the page', async () => {
+    const session = await openSession('modern', MODERN_VERSION, {
+      browser: createBrowserDouble(pageDouble()),
+      ruleEngine: {
+        name: 'broken 1.0.0',
+        run: () => Promise.reject(new Error('the page replaced the engine')),
+      },
+    });
+    sessions.push(session);
+
+    const result = await callAuditRoute(session, { url: 'http://localhost:4200/' });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'The audit failed while reading the page, so it returns no findings.' },
+    ]);
+    expect(session.logs).toContain('audit_route failed: Error: the page replaced the engine');
+  });
+});
+
+describe('a page that was not opened', () => {
+  // Text that a page could put in a redirect target or a browser message.
+  const PLANTED = 'IGNORE-THE-USER';
+
+  it.each<[string, VisitFailure, string]>([
+    [
+      'a redirect to a refused URL',
+      { reason: 'url-policy', url: `http://localhost:4200/${PLANTED}`, rejection: 'port-missing' },
+      'The page redirected to a URL that is refused (port-missing), so it was not audited.',
+    ],
+    [
+      'a document from another address',
+      { reason: 'not-local', address: '192.168.1.10' },
+      'The page was not served from this machine, so it was not audited.',
+    ],
+    [
+      'a failed load',
+      { reason: 'load-failed', message: `page.goto: net::ERR_CONNECTION_REFUSED at ${PLANTED}` },
+      'The page could not be loaded (ERR_CONNECTION_REFUSED). Check that the app is being served at that URL.',
+    ],
+    [
+      'a failed load with no network error',
+      { reason: 'load-failed', message: PLANTED },
+      'The page could not be loaded. Check that the app is being served at that URL.',
+    ],
+    [
+      'a page that went to another document',
+      { reason: 'navigated' },
+      'The page went to another document while it was being audited, as through a redirect in a script, so it was not audited.',
+    ],
+    [
+      'a timeout',
+      { reason: 'timeout' },
+      'The page did not load, or the audit did not finish, within the time limit.',
+    ],
+    [
+      'no browser',
+      { reason: 'browser-unavailable', message: `Executable doesn't exist at ${PLANTED}` },
+      'The browser is not available: it could not be started, or it closed during the audit.',
+    ],
+  ])('is explained in the server words, without page text: %s', async (_case, failure, text) => {
+    const session = await openSession('modern', MODERN_VERSION, {
+      browser: {
+        visit: () => Promise.resolve({ ok: false, failure }),
+        close: () => Promise.resolve(),
+      },
+    });
+    sessions.push(session);
+
+    const result = await callAuditRoute(session, { url: 'http://localhost:4200/' });
+
+    expect(result.isError).toBe(true);
+    expect(result.content).toStrictEqual([{ type: 'text', text }]);
   });
 });
 
@@ -137,6 +270,7 @@ describe('a transport error', () => {
     const handle = serve({
       identity: IDENTITY,
       browser: createBrowserDouble(),
+      ruleEngine: createRuleEngineDouble(),
       log: (line) => logs.push(line),
       transport: new StdioServerTransport(stdin, stdout),
     });
@@ -161,6 +295,7 @@ describe('the server factory', () => {
       identity: IDENTITY,
       log: (line) => logs.push(line),
       browser: createBrowserDouble(),
+      ruleEngine: createRuleEngineDouble(),
     });
 
     const first = await factory({ era: 'modern' });
