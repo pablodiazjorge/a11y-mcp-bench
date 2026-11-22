@@ -32,6 +32,12 @@ const rawResultSchema = z.object({
               method: z.enum(['style-attribute', 'nearest-custom-element']),
             })
             .nullable(),
+          element: z.object({
+            tag: z.string(),
+            attributes: z.array(z.object({ name: z.string(), value: z.string() })),
+            attributeCount: z.number().int().nonnegative(),
+          }),
+          accessibleName: z.string().nullable(),
         }),
       ),
     }),
@@ -176,7 +182,25 @@ const walk = (root) => {
 walk(document);
 ${COMPONENT_SCRIPT}
 const checks = (list) => list.map((check) => ({ id: check.id, data: check.data ?? null }));
-return {
+// The page text that the server may pass on is read here, with limits on how much leaves the page;
+// the server cuts it to its own caps. The opening tag reads the attributes only. The accessible name
+// reads the children as a screen reader does, hidden ones and comments left out.
+engine.setup(document);
+const nameOf = (element) => {
+  try {
+    return engine.commons.text.accessibleText(element).slice(0, 1000);
+  } catch {
+    return null;
+  }
+};
+const elementOf = (element) => ({
+  tag: element.localName.slice(0, 100),
+  attributes: Array.from(element.attributes)
+    .slice(0, 64)
+    .map((attribute) => ({ name: attribute.name.slice(0, 100), value: attribute.value.slice(0, 100) })),
+  attributeCount: element.attributes.length,
+});
+const read = {
   version: engine.version,
   violations: result.violations.map((violation) => ({
     rule: violation.id,
@@ -188,10 +212,14 @@ return {
         documentIndex: order.has(node.element) ? order.get(node.element) : -1,
         checks: [...checks(node.any), ...checks(node.all), ...checks(node.none)],
         component: componentOf(node.element),
+        element: elementOf(node.element),
+        accessibleName: nameOf(node.element),
       };
     }),
   })),
 };
+engine.teardown();
+return read;
 })()`;
 }
 
@@ -229,6 +257,8 @@ export function createAxeRuleEngine(): RuleEngine {
             documentIndex: node.documentIndex,
             measurement: measure(rule, node.checks),
             component: plainComponent(node.component),
+            element: node.element,
+            accessibleName: node.accessibleName,
           }),
         ),
       );

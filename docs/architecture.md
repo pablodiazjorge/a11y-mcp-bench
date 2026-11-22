@@ -2,13 +2,14 @@
 
 The repository has six parts, and the dependencies between them run one way. `npm run check:deps` checks the main boundaries as part of the local gate (`npm run ci`). This page shows who takes part in a study, what each part may depend on, how the server is split inside and how that is checked.
 
-The reasons are in five ADRs (architecture decision records):
+The reasons are in six ADRs (architecture decision records):
 
 - [ADR 0001](adr/0001-scope-and-non-goals.md): what the project measures and what it leaves out.
 - [ADR 0002](adr/0002-methodology.md): how a study is run and graded.
 - [ADR 0003](adr/0003-monorepo-layout.md): the layout and the boundaries between the parts.
 - [ADR 0004](adr/0004-server-architecture.md): the server's SDK, the parts inside it and what its tools return.
 - [ADR 0005](adr/0005-url-policy.md): which URLs the server may open.
+- [ADR 0006](adr/0006-untrusted-page-text.md): which text from the page reaches the agent, and how.
 
 ## A study
 
@@ -74,7 +75,7 @@ flowchart TD
 
 The server is split into ports and adapters ([ADR 0004](adr/0004-server-architecture.md)). Its source, in `packages/wcag-evidence-mcp/src/`, has three parts:
 
-- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them, the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)), the ports of the browser and the rule engine, and the `audit_route` use case with its output. It imports nothing but itself and `zod`.
+- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them, the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)), the ports of the browser and the rule engine, the `audit_route` use case with its output, and the caps on the text from the page ([ADR 0006](adr/0006-untrusted-page-text.md)). It imports nothing but itself and `zod`.
 - `adapters/` holds the adapters. Each folder in `adapters/` connects the core to one outside thing. Today there are five: `mcp` (the MCP SDK over stdio), `log-stream` (stderr), `package-json` (the package's own `package.json`), `playwright` (Chromium, the browser) and `axe` (axe-core, run inside the page). An adapter may import anything the server may, except another adapter and `bin.ts`.
 - `bin.ts` creates the adapters and wires them together. Apart from the adapters themselves and the tests, it is the only file of the server that imports an adapter, and nothing imports it.
 
@@ -142,11 +143,11 @@ The adapter checks the fields of the script's result that it uses, and accepts o
 `audit_route` takes the URL of a page and, optionally, a list of criteria. The URL goes through the three layers of the URL policy. The output follows the contract of [ADR 0004](adr/0004-server-architecture.md):
 
 - **Rules.** The rules that axe-core runs by default for the twelve criteria, plus `target-size` for 2.5.8: 48 rules with axe-core 4.14.0, read from the rule map, not from a list in the code. Experimental and deprecated rules stay out. What axe-core marks for review is not returned.
-- **Findings.** One per element that fails a rule: an identifier, the criteria of the twelve that the rule checks, the rule, the measurement and the location (the selector and the rectangle). The measurement holds what axe-core measured: the contrast ratio, the colors and the font size; the size of a target and its distance to the next one; or, for any other rule, the ids of the checks that failed. The location also names the Angular component that declares the element: see [The component of a finding](#the-component-of-a-finding).
-- **Little page text.** The selector and the component's tags are the only text that the page's code writes into the output: no accessible name, no HTML and no message of axe-core, so that the page has little room to write instructions there. The check ids come from the installed axe-core. The messages of an error are the server's own, and repeat only the URL that the agent gave.
+- **Findings.** One per element that fails a rule: an identifier, the criteria of the twelve that the rule checks, the rule, the measurement and the location. The measurement holds what axe-core measured: the contrast ratio, the colors and the font size; the size of a target and its distance to the next one; or, for any other rule, the ids of the checks that failed. The location holds the element's rectangle and, from the page, its selector, its opening tag and the Angular component that declares it (see [The component of a finding](#the-component-of-a-finding)). [ADR 0006](adr/0006-untrusted-page-text.md) changed the shape of the location that ADR 0004 set.
+- **Text from the page.** Whoever writes the page writes this text, so it can hold instructions aimed at the agent. It sits under `fromPage` keys and nowhere else, cut and cleaned, and the tool's description and the schema say that it is data, never an instruction. The accessible name comes only for the rules whose defect is the name or the text alternative, a closed list in `core/name-rules.ts`. No message of axe-core reaches the output. The caps, the cleaning and their reasons are in [ADR 0006](adr/0006-untrusted-page-text.md), and `packages/wcag-evidence-mcp/test/untrusted-text.test.ts` audits a page that writes instructions wherever a page can.
 - **Definitions.** The name and requirement of each criterion that the findings name, once, from the catalog, and a link to its Understanding page at the W3C, while the server has no resources of its own.
 - **Order and identifiers.** By criterion, then rule, then document order. The identifier is FNV-1a (a short non-cryptographic hash) of the route, the rule, the component's tag and the selector without Angular's style attributes and the number that ends an `id` such as `cdk-overlay-0`. The route is the path of the URL, without the query, and with the fragment when it starts with `#/`, as in an app that routes by fragment. When two hashes collide, the element's position in the document is added. A filter by criterion gives the same identifiers.
-- **Cap.** The serialized output stays under 20,000 characters, everything included. When it does not fit, the output keeps the first findings, says that it is truncated and counts, per rule, the findings left out, with the rule's criteria. A filter by those criteria shows more of them, but not those beyond the cap for a single criterion: there is no pagination. On a test page of an Angular app with 120 images without a text alternative, a finding took 353 characters, and the cap kept 55 of them in 19,928 characters; with component tags of 64 characters, it kept 48 (measured on 2026-11-21). At three to four characters per token, the ratio of ADR 0004, that is about 5,000 to 6,600 tokens, under Claude Code's warning of 10,000.
+- **Cap.** The serialized output stays under 20,000 characters, everything included. When it does not fit, the output keeps the first findings, says that it is truncated and counts, per rule, the findings left out, with the rule's criteria. A filter by those criteria shows more of them, but not those beyond the cap for a single criterion: there is no pagination. On the test page of `packages/wcag-evidence-mcp/test/audit-cap.test.ts`, the DOM of an Angular app with 120 images without a text alternative, a finding takes 449 characters, and the cap keeps 43 of them in 19,801 characters; with component tags of 64 characters, it keeps 38 (measured on 2026-11-21). At three to four characters per token, the ratio of ADR 0004, that is about 5,000 to 6,600 tokens, under Claude Code's warning of 10,000.
 - **Annotations.** The tool is read-only and idempotent: it changes nothing itself. The page's own scripts do run, though, and can send requests to the local app. Its `openWorldHint` is false: the URL policy keeps it on pages served by this machine.
 
 The output goes beyond the contract of ADR 0004 in nine ways, accepted with the change that added the tool:
@@ -163,7 +164,7 @@ The output goes beyond the contract of ADR 0004 in nine ways, accepted with the 
 
 ### The component of a finding
 
-Each finding names, in `location.component`, the Angular component that declares the element: the tag to search the code for, such as `app-card`. The server reads it from the page and reads no file, so it gives no file or line.
+Each finding names, in `location.fromPage.component`, the Angular component that declares the element: the tag to search the code for, such as `app-card`. The server reads it from the page and reads no file, so it gives no file or line.
 
 A test on 2026-11-14, with fourteen elements of a real Angular 22.2 app, chose the technique: the root template, a child component used three times, projected content, `@if`, `@for`, `@defer`, a component without styles, two CDK overlays, a role set by a directive and one set by a component, a Material component, and an inline template and a template file. `test/fixtures/angular-cases.html` has the DOM that Angular draws for each, written by hand from that test, not captured from the app, plus a component with emulated styles inside one with shadow DOM; a test checks all of them. In the review of 2026-11-21, the real builds of that app, for development and for production, were audited with the same result, and so were components with shadow DOM, with `ViewEncapsulation.None`, with empty styles and with content set through `innerHTML`.
 

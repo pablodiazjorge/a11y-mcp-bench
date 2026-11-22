@@ -113,7 +113,7 @@ describe('audit_route on the reference page', { timeout: TIMEOUT_MS }, () => {
 
     expect(JSON.stringify(output).length).toBeLessThanOrEqual(OUTPUT_CAP);
     expect(output.truncated).toBe(true);
-    expect(output.findings.length).toBeGreaterThan(50);
+    expect(output.findings.length).toBeGreaterThan(30);
     expect(output.leftOut).toStrictEqual([
       { rule: 'image-alt', criteria: ['1.1.1'], findings: 120 - output.findings.length },
     ]);
@@ -148,7 +148,7 @@ describe('audit_route on a page that is still changing after load', { timeout: T
 
     expect(output.page).toStrictEqual({ status: 200, refusedRequests: 0, settled: true });
     expect(
-      output.findings.map(({ rule, location }) => `${rule} ${location.selector}`),
+      output.findings.map(({ rule, location }) => `${rule} ${location.fromPage.selector}`),
     ).toStrictEqual(['image-alt img', 'button-name button']);
   });
 

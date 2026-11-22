@@ -17,17 +17,23 @@
           "aria-labelledby",
           "non-empty-title",
           "presentational-role"
-        ]
+        ],
+        "fromPage": {
+          "accessibleName": ""
+        }
       },
       "location": {
-        "selector": "img",
         "rect": {
           "x": 10,
           "y": 70,
           "width": 30,
           "height": 30
         },
-        "component": null
+        "fromPage": {
+          "selector": "img",
+          "openingTag": "<img class=\"box logo\" src=\"data:image/gif;base…\" style=\"left: 10px; top: 70…\">",
+          "component": null
+        }
       }
     },
     {
@@ -44,14 +50,17 @@
         "bold": false
       },
       "location": {
-        "selector": "#price",
         "rect": {
           "x": 10,
           "y": 10,
           "width": 200,
           "height": 20
         },
-        "component": null
+        "fromPage": {
+          "selector": "#price",
+          "openingTag": "<p id=\"price\" class=\"box\" style=\"left: 10px; top: 10…\">",
+          "component": null
+        }
       }
     },
     {
@@ -68,17 +77,20 @@
         "bold": false
       },
       "location": {
-        "selector": "span[_ngcontent-ng-c1111111111=\"\"]",
         "rect": {
           "x": 10,
           "y": 40,
           "width": 100,
           "height": 20
         },
-        "component": {
-          "tag": "app-price",
-          "usedIn": null,
-          "method": "style-attribute"
+        "fromPage": {
+          "selector": "span[_ngcontent-ng-c1111111111=\"\"]",
+          "openingTag": "<span class=\"box\" style=\"left: 10px; top: 40…\">",
+          "component": {
+            "tag": "app-price",
+            "usedIn": null,
+            "method": "style-attribute"
+          }
         }
       }
     },
@@ -96,17 +108,20 @@
         "bold": false
       },
       "location": {
-        "selector": "span[_ngcontent-ng-c2222222222=\"\"]",
         "rect": {
           "x": 120,
           "y": 40,
           "width": 100,
           "height": 20
         },
-        "component": {
-          "tag": "app-badge",
-          "usedIn": null,
-          "method": "style-attribute"
+        "fromPage": {
+          "selector": "span[_ngcontent-ng-c2222222222=\"\"]",
+          "openingTag": "<span class=\"box\" style=\"left: 120px; top: 4…\">",
+          "component": {
+            "tag": "app-badge",
+            "usedIn": null,
+            "method": "style-attribute"
+          }
         }
       }
     },
@@ -119,14 +134,17 @@
         "checks": ["focusable-content", "focusable-element"]
       },
       "location": {
-        "selector": "ul",
         "rect": {
           "x": 10,
           "y": 130,
           "width": 100,
           "height": 40
         },
-        "component": null
+        "fromPage": {
+          "selector": "ul",
+          "openingTag": "<ul class=\"box scroller\" style=\"left: 10px; top: 13…\">",
+          "component": null
+        }
       }
     },
     {
@@ -141,17 +159,23 @@
           "aria-labelledby",
           "non-empty-title",
           "focusable-no-name"
-        ]
+        ],
+        "fromPage": {
+          "accessibleName": ""
+        }
       },
       "location": {
-        "selector": "a",
         "rect": {
           "x": 100,
           "y": 70,
           "width": 30,
           "height": 30
         },
-        "component": null
+        "fromPage": {
+          "selector": "a",
+          "openingTag": "<a href=\"/more\" class=\"box more\" style=\"left: 100px; top: 7…\">",
+          "component": null
+        }
       }
     },
     {
@@ -167,14 +191,17 @@
         "requiredOffset": 24
       },
       "location": {
-        "selector": "button[aria-label=\"Smaller\"]",
         "rect": {
           "x": 10,
           "y": 110,
           "width": 10,
           "height": 10
         },
-        "component": null
+        "fromPage": {
+          "selector": "button[aria-label=\"Smaller\"]",
+          "openingTag": "<button aria-label=\"Smaller\" class=\"box\" style=\"left: 10px; top: 11…\">",
+          "component": null
+        }
       }
     },
     {
@@ -190,14 +217,17 @@
         "requiredOffset": 24
       },
       "location": {
-        "selector": "button[aria-label=\"Larger\"]",
         "rect": {
           "x": 22,
           "y": 110,
           "width": 10,
           "height": 10
         },
-        "component": null
+        "fromPage": {
+          "selector": "button[aria-label=\"Larger\"]",
+          "openingTag": "<button aria-label=\"Larger\" class=\"box\" style=\"left: 22px; top: 11…\">",
+          "component": null
+        }
       }
     },
     {
@@ -214,17 +244,23 @@
           "implicit-label",
           "explicit-label",
           "presentational-role"
-        ]
+        ],
+        "fromPage": {
+          "accessibleName": ""
+        }
       },
       "location": {
-        "selector": "#cdk-dialog-0 > button",
         "rect": {
           "x": 50,
           "y": 70,
           "width": 40,
           "height": 30
         },
-        "component": null
+        "fromPage": {
+          "selector": "#cdk-dialog-0 > button",
+          "openingTag": "<button class=\"box\" style=\"left: 50px; top: 70…\">",
+          "component": null
+        }
       }
     }
   ],
