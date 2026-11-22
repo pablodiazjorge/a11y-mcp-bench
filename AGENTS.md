@@ -25,6 +25,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
 | `packages/wcag-evidence-mcp/`                                            | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`            |
 | `packages/wcag-evidence-mcp/scripts/`                                    | The generator that `npm run gen` runs to write `src/core/axe-rules.json`, the map of axe-core rules                             |
+| `packages/wcag-evidence-mcp/tools.contract.json`, `docs/tools.md`        | What the server shows an MCP client, and a readable reference made from it; both written by `npm run gen`                       |
 | `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
 | `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
 | `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The boundaries of ADRs 0003 and 0004 as dependency-cruiser rules, and the tests that each rule catches a forbidden import       |
@@ -40,7 +41,7 @@ npm run browser:install      # download the Chromium that the server and its tes
 npm run ci                   # the local gate: format, lint, types, repository checks, module boundaries, server build, tests with coverage
 npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
 npm run build                # only the server build, into packages/wcag-evidence-mcp/dist
-npm run gen                  # rewrite the generated files: today the map of axe-core rules, from the installed axe-core
+npm run gen                  # rewrite the generated files: the map of axe-core rules, the tool contract and docs/tools.md
 npm run check:repo           # only the repository checks
 npm run check:deps           # only the module boundaries (the rules in .dependency-cruiser.js)
 npm run check:lockfile-age   # only the lockfile age check (needs network access to the npm registry)
@@ -88,7 +89,9 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
 
 ### Tests
 
-- New code comes with tests, and `npm run ci` enforces the coverage thresholds in `vitest.config.ts`.
+- New code comes with tests, and `npm run ci` enforces the coverage thresholds in `vitest.config.ts`: stricter ones for the server's core and adapters.
+- The generated files, `packages/wcag-evidence-mcp/src/core/axe-rules.json`, `packages/wcag-evidence-mcp/tools.contract.json` and `docs/tools.md`, are never edited by hand: change their source and run `npm run gen`. A test fails when one differs from what its source gives.
+- The tool contract holds messages of the MCP SDK and of zod, such as the text of a validation error, so an upgrade of either, from Dependabot too, fails the contract test until `npm run gen` writes the contract again. Read the diff of the contract before accepting it.
 - A test must fail when the code is wrong. Tests do not depend on the clock, on the network or on the order in which they run.
 
 ### Untrusted input
