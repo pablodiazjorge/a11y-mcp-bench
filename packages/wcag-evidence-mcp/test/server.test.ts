@@ -62,8 +62,8 @@ afterEach(async () => {
 async function listAuditRoute(session: Session): Promise<ListedTool> {
   const listed = await session.request('tools/list');
   const tools = (listed.result?.tools ?? []) as ListedTool[];
-  expect(tools.map(({ name }) => name)).toStrictEqual(['audit_route']);
-  const [tool] = tools;
+  expect(tools.map(({ name }) => name)).toStrictEqual(['audit_route', 'explain_criterion']);
+  const tool = tools.find(({ name }) => name === 'audit_route');
   if (tool === undefined) throw new Error('audit_route is not listed');
   return tool;
 }
@@ -79,7 +79,7 @@ describe.each<[Era, string]>([
   ['legacy', '2025-11-25'],
   ['modern', MODERN_VERSION],
 ])('a %s client on %s', (era, version) => {
-  it('lists audit_route alone, read-only, with an input and an output schema', async () => {
+  it('lists audit_route, read-only, with an input and an output schema', async () => {
     const tool = await listAuditRoute(await open(era, version));
 
     expect(tool.title).toBe('Audit route');

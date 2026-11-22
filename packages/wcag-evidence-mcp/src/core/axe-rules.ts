@@ -19,6 +19,11 @@ export const axeRuleSchema = z.strictObject({
   enabled: z.boolean(),
   experimental: z.boolean(),
   deprecated: z.boolean(),
+  /**
+   * Whether axe-core reports a failure of the rule as one to review, never as a violation: an
+   * audit, which reports violations only, never gives a finding of it.
+   */
+  reviewOnFail: z.boolean(),
 });
 
 export const axeRuleMapSchema = z.strictObject({

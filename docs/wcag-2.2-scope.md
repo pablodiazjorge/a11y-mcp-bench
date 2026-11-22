@@ -4,7 +4,7 @@ The server's audit tools check twelve WCAG 2.2 success criteria (the testable re
 
 The criteria and their wording come from the [WCAG 2.2 W3C Recommendation](https://www.w3.org/TR/WCAG22/) of 12 December 2024. The rule identifiers come from axe-core 4.14.0 (the open-source library of automatic accessibility checks that the server runs), the version that the counts on this page come from. Both were checked on 2026-11-20. Why the server exists and why it stays small is in [ADR 0001](adr/0001-scope-and-non-goals.md); what a finding looks like is in [ADR 0004](adr/0004-server-architecture.md).
 
-The server holds the same twelve criteria as data in `packages/wcag-evidence-mcp/src/core/criteria.ts`. A test fails when that catalog and this page disagree on the number, name, level, link, way of deciding, class or requirement of a criterion. It also fails when a list of axe-core rules on this page disagrees with the map of axe-core rules that the server generates, `packages/wcag-evidence-mcp/src/core/axe-rules.json`.
+The server holds the same twelve criteria as data in `packages/wcag-evidence-mcp/src/core/criteria.ts`. A test fails when that catalog and this page disagree on the number, name, level, link, way of deciding, class, requirement or manual part of a criterion. It also fails when a list of axe-core rules on this page disagrees with the map of axe-core rules that the server generates, `packages/wcag-evidence-mcp/src/core/axe-rules.json`. The tool `explain_criterion` and the resource `criterion://<number>` give an agent the same, one criterion at a time.
 
 ## How a criterion is decided
 
@@ -56,7 +56,7 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 
 - **Requires:** text has a contrast ratio of at least 4.5:1 with its background, or 3:1 for large text.
 - **Rule (1):** `color-contrast`, decided on a plain background.
-- **Manual:** text over an image, a gradient or another background that axe-core cannot measure (it marks those for review), and text in images.
+- **Manual:** text over an image, a gradient or another background that axe-core cannot measure (it marks those for review, and `audit_route` does not report them), and text in images.
 
 ### 2.4.4 Link Purpose (In Context) (A)
 
@@ -68,7 +68,7 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 
 - **Requires:** every control has a name and a role that software can read, and assistive technologies can read its states and values, set those that the user can set, and are told when they change.
 - **Rules (28):** `area-alt`, `aria-allowed-attr`, `aria-braille-equivalent`, `aria-command-name`, `aria-conditional-attr`, `aria-deprecated-role`, `aria-hidden-body`, `aria-hidden-focus`, `aria-input-field-name`, `aria-prohibited-attr`, `aria-required-attr`, `aria-roles`, `aria-tab-name`, `aria-toggle-field-name`, `aria-tooltip-name`, `aria-valid-attr-value`, `aria-valid-attr`, `button-name`, `duplicate-id-aria`, `frame-title-unique`, `frame-title`, `input-button-name`, `input-image-alt`, `label`, `link-name`, `nested-interactive`, `select-name`, `summary-name`. They check that names, roles and ARIA attributes are present and valid. axe-core also has `aria-roledescription`, deprecated and off by default.
-- **Manual:** whether a name describes the control, and whether its states change as the user works it, such as `aria-expanded` on a menu that opens.
+- **Manual:** whether a name describes the control, and whether its states change as the user works it, such as `aria-expanded` on a menu that opens; and what `aria-braille-equivalent`, `duplicate-id-aria` and `frame-title-unique` look for, since axe-core 4.14.0 only marks their failures for review, which `audit_route` does not report.
 
 ### 2.5.8 Target Size (Minimum) (AA)
 

@@ -8,7 +8,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-allowed-attr",
@@ -17,7 +18,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-braille-equivalent",
@@ -26,7 +28,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": true
     },
     {
       "id": "aria-command-name",
@@ -35,7 +38,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-conditional-attr",
@@ -44,7 +48,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-deprecated-role",
@@ -53,7 +58,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-hidden-body",
@@ -62,7 +68,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-hidden-focus",
@@ -71,7 +78,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-input-field-name",
@@ -80,7 +88,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-meter-name",
@@ -89,7 +98,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-progressbar-name",
@@ -98,7 +108,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-prohibited-attr",
@@ -107,7 +118,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-required-attr",
@@ -116,7 +128,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-required-children",
@@ -125,7 +138,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-required-parent",
@@ -134,7 +148,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-roledescription",
@@ -143,7 +158,8 @@
       "runsByDefault": false,
       "enabled": false,
       "experimental": false,
-      "deprecated": true
+      "deprecated": true,
+      "reviewOnFail": false
     },
     {
       "id": "aria-roles",
@@ -152,7 +168,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-tab-name",
@@ -161,7 +178,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-toggle-field-name",
@@ -170,7 +188,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-tooltip-name",
@@ -179,7 +198,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-valid-attr",
@@ -188,7 +208,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "aria-valid-attr-value",
@@ -197,7 +218,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "autocomplete-valid",
@@ -206,7 +228,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "button-name",
@@ -215,7 +238,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "color-contrast",
@@ -224,7 +248,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "definition-list",
@@ -233,7 +258,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "dlitem",
@@ -242,7 +268,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "duplicate-id-aria",
@@ -251,7 +278,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": true
     },
     {
       "id": "frame-focusable-content",
@@ -260,7 +288,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "frame-title",
@@ -269,7 +298,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "frame-title-unique",
@@ -278,7 +308,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": true
     },
     {
       "id": "image-alt",
@@ -287,7 +318,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "input-button-name",
@@ -296,7 +328,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "input-image-alt",
@@ -305,7 +338,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "label",
@@ -314,7 +348,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "link-name",
@@ -323,7 +358,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "list",
@@ -332,7 +368,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "listitem",
@@ -341,7 +378,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "nested-interactive",
@@ -350,7 +388,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "object-alt",
@@ -359,7 +398,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "p-as-heading",
@@ -368,7 +408,8 @@
       "runsByDefault": false,
       "enabled": true,
       "experimental": true,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "role-img-alt",
@@ -377,7 +418,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "scrollable-region-focusable",
@@ -386,7 +428,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "select-name",
@@ -395,7 +438,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "server-side-image-map",
@@ -404,7 +448,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "summary-name",
@@ -413,7 +458,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "svg-img-alt",
@@ -422,7 +468,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "table-fake-caption",
@@ -431,7 +478,8 @@
       "runsByDefault": false,
       "enabled": true,
       "experimental": true,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "target-size",
@@ -440,7 +488,8 @@
       "runsByDefault": false,
       "enabled": false,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "td-has-header",
@@ -449,7 +498,8 @@
       "runsByDefault": false,
       "enabled": true,
       "experimental": true,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "td-headers-attr",
@@ -458,7 +508,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     },
     {
       "id": "th-has-data-cells",
@@ -467,7 +518,8 @@
       "runsByDefault": true,
       "enabled": true,
       "experimental": false,
-      "deprecated": false
+      "deprecated": false,
+      "reviewOnFail": false
     }
   ]
 }

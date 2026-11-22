@@ -30,6 +30,8 @@ export interface Session {
   request(method: string, params?: Record<string, unknown>): Promise<Response>;
   /** Every line the server logged. */
   readonly logs: readonly string[];
+  /** What the server answered to `initialize`, for a legacy session. */
+  readonly initialized?: Record<string, unknown>;
   close(): Promise<void>;
 }
 
@@ -71,6 +73,7 @@ export async function openSession(
     return answered;
   };
 
+  let initialized: Record<string, unknown> | undefined;
   if (era === 'legacy') {
     const opened = await send('initialize', {
       protocolVersion: version,
@@ -79,10 +82,12 @@ export async function openSession(
     });
     if (opened.error !== undefined) throw new Error(`initialize failed: ${opened.error.message}`);
     await client.send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    initialized = opened.result;
   }
 
   return {
     logs,
+    ...(initialized === undefined ? {} : { initialized }),
     request: (method, params) =>
       era === 'legacy'
         ? send(method, params)

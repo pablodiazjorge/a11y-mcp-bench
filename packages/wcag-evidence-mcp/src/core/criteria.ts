@@ -1,6 +1,7 @@
-// The twelve WCAG 2.2 criteria that the server will check, as data. docs/wcag-2.2-scope.md
-// explains each one, and a test keeps the two in step. The output of an audit will define each
-// criterion once (ADR 0004), and will take that definition from here.
+// The twelve WCAG 2.2 criteria that the server checks, as data. docs/wcag-2.2-scope.md explains
+// each one, and a test keeps the two in step. The output of an audit defines each criterion once
+// (ADR 0004), `explain_criterion` and the criteria's resources explain each one, and all of them
+// take their text from here.
 
 import * as z from 'zod';
 
@@ -22,12 +23,25 @@ export const criterionSchema = z.object({
   decidedBy: z.enum(['axe-core', 'own-check', 'heuristic', 'axe-core-and-heuristic']),
   /** Whether a person has to confirm the server's findings. `null` until the check is designed. */
   class: z.enum(['automatic', 'semi-automatic']).nullable(),
+  /**
+   * What is left for a person to check, in one plain sentence. `null` until the check is
+   * designed, as for the class.
+   */
+  manual: z.string().min(1).nullable(),
 });
 
 export type Criterion = z.infer<typeof criterionSchema>;
 
 const understanding = (page: string): string =>
   `https://www.w3.org/WAI/WCAG22/Understanding/${page}.html`;
+
+/**
+ * The URI of a criterion's resource on this server, such as `criterion://1.1.1`. It holds what
+ * `explain_criterion` returns for the criterion.
+ */
+export function criterionResource(id: string): string {
+  return `criterion://${id}`;
+}
 
 /** The twelve criteria, in the order of their numbers. */
 export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
@@ -40,6 +54,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('non-text-content'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual:
+      'Whether the alternative says what the content says, and whether content with an empty alternative is really decorative.',
   },
   {
     id: '1.3.1',
@@ -50,6 +66,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('info-and-relationships'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual:
+      'Structure that is only visual and not in the markup at all, such as text styled as a heading that is not marked as one.',
   },
   {
     id: '1.3.5',
@@ -60,6 +78,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('identify-input-purpose'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual:
+      'Whether a field that asks for user data has an `autocomplete` value at all, and whether the value matches what the field asks for.',
   },
   {
     id: '1.4.3',
@@ -70,6 +90,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('contrast-minimum'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual:
+      'Text over an image, a gradient or another background that axe-core cannot measure (it marks those for review, and `audit_route` does not report them), and text in images.',
   },
   {
     id: '2.1.1',
@@ -79,6 +101,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('keyboard'),
     decidedBy: 'axe-core-and-heuristic',
     class: 'semi-automatic',
+    manual:
+      'Functions that the heuristic cannot see, such as a menu that opens only on hover or a widget that needs arrow keys.',
   },
   {
     id: '2.1.2',
@@ -89,6 +113,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('no-keyboard-trap'),
     decidedBy: 'heuristic',
     class: 'semi-automatic',
+    manual:
+      'A trap that only other keys would show, and whether the page explains a way out that is not standard.',
   },
   {
     id: '2.4.3',
@@ -99,6 +125,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('focus-order'),
     decidedBy: 'heuristic',
     class: 'semi-automatic',
+    manual:
+      'Whether an order makes sense for the content, which no comparison of positions can decide.',
   },
   {
     id: '2.4.4',
@@ -109,6 +137,7 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('link-purpose-in-context'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual: 'Whether the name, with its context, says where the link goes.',
   },
   {
     id: '2.4.7',
@@ -119,6 +148,7 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('focus-visible'),
     decidedBy: 'own-check',
     class: null,
+    manual: null,
   },
   {
     id: '2.4.11',
@@ -129,6 +159,7 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('focus-not-obscured-minimum'),
     decidedBy: 'own-check',
     class: null,
+    manual: null,
   },
   {
     id: '2.5.8',
@@ -139,6 +170,8 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('target-size-minimum'),
     decidedBy: 'axe-core',
     class: 'semi-automatic',
+    manual:
+      'Targets that are not focusable, which the rule does not check, such as a clickable `div`; and whether another exception applies: an equivalent control elsewhere on the page, a size set by the browser, or a size that is essential.',
   },
   {
     id: '4.1.2',
@@ -149,5 +182,7 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
     understanding: understanding('name-role-value'),
     decidedBy: 'axe-core',
     class: 'automatic',
+    manual:
+      'Whether a name describes the control, and whether its states change as the user works it, such as `aria-expanded` on a menu that opens; and what `aria-braille-equivalent`, `duplicate-id-aria` and `frame-title-unique` look for, since axe-core 4.14.0 only marks their failures for review, which `audit_route` does not report.',
   },
 ]);

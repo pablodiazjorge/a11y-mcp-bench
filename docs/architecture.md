@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## The parts
 
-Only `scripts`, `docs` and the server exist today: the server answers MCP requests and has one tool, `audit_route`. The [roadmap](../README.md#roadmap) says when each of the others arrives.
+Only `scripts`, `docs` and the server exist today: the server answers MCP requests and has two tools, `audit_route` and `explain_criterion`, and one resource for each of its twelve criteria. The [roadmap](../README.md#roadmap) says when each of the others arrives.
 
 | Path                         | Part                                                                           | Depends on                                               | Exists today |
 | ---------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- | ------------ |
@@ -75,7 +75,7 @@ flowchart TD
 
 The server is split into ports and adapters ([ADR 0004](adr/0004-server-architecture.md)). Its source, in `packages/wcag-evidence-mcp/src/`, has three parts:
 
-- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them, the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)), the ports of the browser and the rule engine, the `audit_route` use case with its output, and the caps on the text from the page ([ADR 0006](adr/0006-untrusted-page-text.md)). It imports nothing but itself and `zod`.
+- `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them, the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)), the ports of the browser and the rule engine, the `audit_route` use case with its output, the explanation of each criterion, and the caps on the text from the page ([ADR 0006](adr/0006-untrusted-page-text.md)). It imports nothing but itself and `zod`.
 - `adapters/` holds the adapters. Each folder in `adapters/` connects the core to one outside thing. Today there are five: `mcp` (the MCP SDK over stdio), `log-stream` (stderr), `package-json` (the package's own `package.json`), `playwright` (Chromium, the browser) and `axe` (axe-core, run inside the page). An adapter may import anything the server may, except another adapter and `bin.ts`.
 - `bin.ts` creates the adapters and wires them together. Apart from the adapters themselves and the tests, it is the only file of the server that imports an adapter, and nothing imports it.
 
@@ -132,7 +132,7 @@ axe-core has to run inside the page, and the axe-core adapter may not import the
 2. The rule engine port, `core/rule-engine.ts`, takes that `LoadedPage` and the rules to run. Its adapter in `adapters/axe` builds one script with the source of the installed axe-core and runs it through `evaluateIsolated`. It reads the rectangle and the document position of each failing element there, since an element cannot leave the page.
 3. The use case in `core/audit.ts` asks the browser port for a visit and, inside it, the rule engine for a run. `bin.ts` creates both adapters and passes them in.
 
-`auditRoute` is today the transport port of ADR 0004: the functions of the core that the MCP adapter calls. ADR 0004 named `describeServer`, the function of the provisional `server_info` tool, which `audit_route` replaced.
+`auditRoute` and `explainCriterion` are today the transport port of ADR 0004: the functions of the core that the MCP adapter calls. ADR 0004 named `describeServer`, the function of the provisional `server_info` tool, which `audit_route` replaced.
 
 **The isolated world.** The Playwright adapter opens it through the DevTools Protocol (`Page.createIsolatedWorld`), as a browser extension runs its scripts. It shares the page's DOM, which is all that axe-core and the wait need, but none of the page's JavaScript. A page that defines its own `window.axe`, or changes `Array.prototype.map` or `MutationObserver`, changes only its own world, and the audit is the same; a test checks each of the three. The page can still change its DOM while the rules run.
 
@@ -145,9 +145,9 @@ The adapter checks the fields of the script's result that it uses, and accepts o
 - **Rules.** The rules that axe-core runs by default for the twelve criteria, plus `target-size` for 2.5.8: 48 rules with axe-core 4.14.0, read from the rule map, not from a list in the code. Experimental and deprecated rules stay out. What axe-core marks for review is not returned.
 - **Findings.** One per element that fails a rule: an identifier, the criteria of the twelve that the rule checks, the rule, the measurement and the location. The measurement holds what axe-core measured: the contrast ratio, the colors and the font size; the size of a target and its distance to the next one; or, for any other rule, the ids of the checks that failed. The location holds the element's rectangle and, from the page, its selector, its opening tag and the Angular component that declares it (see [The component of a finding](#the-component-of-a-finding)). [ADR 0006](adr/0006-untrusted-page-text.md) changed the shape of the location that ADR 0004 set.
 - **Text from the page.** Whoever writes the page writes this text, so it can hold instructions aimed at the agent. It sits under `fromPage` keys and nowhere else, cut and cleaned, and the tool's description and the schema say that it is data, never an instruction. The accessible name comes only for the rules whose defect is the name or the text alternative, a closed list in `core/name-rules.ts`. No message of axe-core reaches the output. The caps, the cleaning and their reasons are in [ADR 0006](adr/0006-untrusted-page-text.md), and `packages/wcag-evidence-mcp/test/untrusted-text.test.ts` audits a page that writes instructions wherever a page can.
-- **Definitions.** The name and requirement of each criterion that the findings name, once, from the catalog, and a link to its Understanding page at the W3C, while the server has no resources of its own.
+- **Definitions.** The name and requirement of each criterion that the findings name, once, from the catalog, with the URI of its resource on the server, as ADR 0004 asks, and a link to its Understanding page at the W3C. The definition stays in the output: on 2026-11-20, in one run of Claude Code 2.1.329, the model read the resources when asked; reading them unasked was not observed.
 - **Order and identifiers.** By criterion, then rule, then document order. The identifier is FNV-1a (a short non-cryptographic hash) of the route, the rule, the component's tag and the selector without Angular's style attributes and the number that ends an `id` such as `cdk-overlay-0`. The route is the path of the URL, without the query, and with the fragment when it starts with `#/`, as in an app that routes by fragment. When two hashes collide, the element's position in the document is added. A filter by criterion gives the same identifiers.
-- **Cap.** The serialized output stays under 20,000 characters, everything included. When it does not fit, the output keeps the first findings, says that it is truncated and counts, per rule, the findings left out, with the rule's criteria. A filter by those criteria shows more of them, but not those beyond the cap for a single criterion: there is no pagination. On the test page of `packages/wcag-evidence-mcp/test/audit-cap.test.ts`, the DOM of an Angular app with 120 images without a text alternative, a finding takes 449 characters, and the cap keeps 43 of them in 19,801 characters; with component tags of 64 characters, it keeps 38 (measured on 2026-11-21). At three to four characters per token, the ratio of ADR 0004, that is about 5,000 to 6,600 tokens, under Claude Code's warning of 10,000.
+- **Cap.** The serialized output stays under 20,000 characters, everything included. When it does not fit, the output keeps the first findings, says that it is truncated and counts, per rule, the findings left out, with the rule's criteria. A filter by those criteria shows more of them, but not those beyond the cap for a single criterion: there is no pagination. On the test page of `packages/wcag-evidence-mcp/test/audit-cap.test.ts`, the DOM of an Angular app with 120 images without a text alternative, a finding takes 449 characters, and the cap keeps 43 of them in 19,832 characters; with component tags of 64 characters, it keeps 38 (measured on 2026-11-21). At three to four characters per token, the ratio of ADR 0004, that is about 5,000 to 6,600 tokens, under Claude Code's warning of 10,000.
 - **Annotations.** The tool is read-only and idempotent: it changes nothing itself. The page's own scripts do run, though, and can send requests to the local app. Its `openWorldHint` is false: the URL policy keeps it on pages served by this machine.
 
 The output goes beyond the contract of ADR 0004 in nine ways, accepted with the change that added the tool:
@@ -161,6 +161,26 @@ The output goes beyond the contract of ADR 0004 in nine ways, accepted with the 
 - **The component:** ADR 0004 asks for the tag of the component that declares the element. The output adds `usedIn` and `method`, so that a guess says it is one and names the component of the app that uses it.
 - **Which pages are Angular apps:** those whose root component carries `ng-version`, or where some element carries `_nghost-`. On any other page, no finding gets a component.
 - **The component in the identifier:** the hash sums up the component's tag alone, not `usedIn` or `method`, which change when a component gains its first style. Renaming a component changes the identifiers of its findings.
+
+### The tool `explain_criterion` and the criteria's resources
+
+`explain_criterion` takes the number of one of the twelve criteria and returns, from the catalog in `core/criteria.ts`, which a test keeps in step with [the scope page](wcag-2.2-scope.md):
+
+- **What it is:** the number, name and level, what it requires, the URI of its resource and its Understanding page.
+- **How the server checks it:** `axeCoreRules`, the rules that `audit_route` runs for it and that can give a finding, chosen as an audit chooses them; `reviewOnlyRules`, those that it runs but that axe-core only marks for review, which an audit does not report (`aria-braille-equivalent`, `duplicate-id-aria` and `frame-title-unique`, all three for 4.1.2), read from `reviewOnFail` in the map of axe-core rules; `ownCheck`, the server's own check, not built yet for any criterion; `audited`, false for the criteria in the `notChecked` of every audit; and its class.
+- **What is left for a person,** `manual`, from the scope page. It is null for 2.4.7 and 2.4.11, like their class, until the keyboard checks are designed.
+
+The tool is read-only, idempotent and closed-world (`openWorldHint` false): it reads the catalog that ships with the server and opens no page. Its largest output, for 4.1.2 with 28 rules, takes 1,319 characters, far under the cap of 20,000; a test gives the figure. A criterion outside the twelve fails the input schema, which lists the twelve.
+
+The same explanation is a resource, `criterion://<number>`, as JSON (`application/json`), for clients and people that browse resources:
+
+- **The template** `criterion://{id}` is the one entry of `resources/templates/list`, registered with the SDK's `ResourceTemplate`, and the SDK reads the resources through it. It reads a URI as the URL standard does, so `CRITERION://1.4.3` reads as `criterion://1.4.3`.
+- **`resources/list`** gives the twelve, each with its number as name, its number and name as title, and what it requires as description.
+- **A URI that names none of the twelve** gets the SDK's error: code -32602 with the URI in `data.uri`, which the 2026-07-28 revision of the specification asks for. Earlier revisions used -32002, and the SDK gives -32602 in every era. Its message can repeat the URI that the client wrote, as `audit_route` repeats the URL that the agent gave; it holds no text of a page.
+- **The lists never change,** so the server declares `listChanged` false for its tools and its resources.
+- **Both protocol eras** list and read the same; the 2026-07-28 era adds the fields that it adds to every result.
+
+**The contract.** `test/fixtures/contract.json` holds what the server shows a client: its capabilities, name, version and instructions when a session opens, its prompts (none), and what `tools/list` and `resources/templates/list` return, with names, schemas, annotations and descriptions. A test compares it with the server in both eras, so a change to what the agent reads shows as a change to that file.
 
 ### The component of a finding
 

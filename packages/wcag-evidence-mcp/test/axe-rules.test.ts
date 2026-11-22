@@ -59,12 +59,13 @@ describe('the generator of the map', () => {
   });
 
   it('records the facts of each rule that carries one of the criteria', () => {
-    const fact = (id: string, tags: string[], enabled: boolean, runsByDefault: boolean) => ({
-      id,
-      tags,
-      enabled,
-      runsByDefault,
-    });
+    const fact = (
+      id: string,
+      tags: string[],
+      enabled: boolean,
+      runsByDefault: boolean,
+      reviewOnFail = false,
+    ) => ({ id, tags, enabled, runsByDefault, reviewOnFail });
     const facts: AxeFacts = {
       version: '9.9.9',
       rules: [
@@ -74,6 +75,7 @@ describe('the generator of the map', () => {
         fact('new', ['wcag131', 'experimental'], true, false),
         fact('old', ['wcag412', 'deprecated'], false, false),
         fact('elsewhere', ['wcag2a', 'wcag242'], true, true),
+        fact('review', ['wcag412'], true, true, true),
         fact('practice', ['best-practice'], true, true),
       ],
     };
@@ -85,6 +87,7 @@ describe('the generator of the map', () => {
       enabled: true,
       experimental: false,
       deprecated: false,
+      reviewOnFail: false,
       ...extra,
     });
 
@@ -97,6 +100,7 @@ describe('the generator of the map', () => {
         rule('new', ['1.3.1'], { runsByDefault: false, experimental: true }),
         rule('off', ['2.5.8'], { runsByDefault: false, enabled: false }),
         rule('old', ['4.1.2'], { runsByDefault: false, enabled: false, deprecated: true }),
+        rule('review', ['4.1.2'], { reviewOnFail: true }),
         rule('zeta', ['2.1.1'], { otherCriteria: ['2.1.3'] }),
       ],
     });
@@ -114,8 +118,8 @@ describe('the generator of the map', () => {
       },
       _audit: {
         rules: [
-          { id: 'page', tags: ['wcag241'], enabled: true, pageLevel: true },
-          { id: 'element', tags: ['wcag111'], enabled: true },
+          { id: 'page', tags: ['wcag241'], enabled: true, reviewOnFail: true, pageLevel: true },
+          { id: 'element', tags: ['wcag111'], enabled: true, reviewOnFail: false },
         ],
       },
     };
@@ -123,8 +127,14 @@ describe('the generator of the map', () => {
     expect(readAxeFacts(shape)).toStrictEqual({
       version: '4.14.0',
       rules: [
-        { id: 'page', tags: ['wcag241'], enabled: true, runsByDefault: true },
-        { id: 'element', tags: ['wcag111'], enabled: true, runsByDefault: false },
+        { id: 'page', tags: ['wcag241'], enabled: true, runsByDefault: true, reviewOnFail: true },
+        {
+          id: 'element',
+          tags: ['wcag111'],
+          enabled: true,
+          runsByDefault: false,
+          reviewOnFail: false,
+        },
       ],
     });
     // axe-core receives its own rule objects, not the copies that the schema returns.
@@ -140,7 +150,7 @@ describe('the generator of the map', () => {
     const shape = {
       version: '4.14.0',
       utils: { ruleShouldRun: () => true },
-      _audit: { rules: [{ id: 'a', tags: ['wcag111'], enabled: true }] },
+      _audit: { rules: [{ id: 'a', tags: ['wcag111'], enabled: true, reviewOnFail: false }] },
     };
 
     expect(readAxeFacts(shape).rules).toHaveLength(1);
@@ -152,6 +162,11 @@ describe('the generator of the map', () => {
       { ...shape, _audit: undefined },
       { ...shape, _audit: { rules: [{ id: 'a', tags: ['wcag111'] }] } },
       { ...shape, _audit: { rules: [{ id: 'a', tags: 'wcag111', enabled: true }] } },
+      { ...shape, _audit: { rules: [{ id: 'a', tags: ['wcag111'], enabled: true }] } },
+      {
+        ...shape,
+        _audit: { rules: [{ id: 'a', tags: ['wcag111'], enabled: true, reviewOnFail: 'yes' }] },
+      },
     ]) {
       expect(() => readAxeFacts(wrong)).toThrow();
     }
