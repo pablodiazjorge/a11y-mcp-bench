@@ -112,8 +112,8 @@ const findingSchema = z.strictObject({
 });
 
 const definitionSchema = z.strictObject({
-  criterion: criterionIdSchema,
-  name: z.string(),
+  criterion: criterionIdSchema.describe("The criterion's number, such as 1.4.3"),
+  name: z.string().describe("The criterion's name in WCAG 2.2"),
   requires: z.string().describe('What the criterion requires, in one sentence'),
   resource: z
     .string()
@@ -161,9 +161,9 @@ export const auditOutputSchema = z.strictObject({
   leftOut: z
     .array(
       z.strictObject({
-        rule: ruleIdSchema,
+        rule: ruleIdSchema.describe('The axe-core rule whose findings were left out'),
         criteria: z.array(criterionIdSchema).describe('The criteria to ask for to see them'),
-        findings: z.number().int().positive(),
+        findings: z.number().int().positive().describe('How many of its findings were left out'),
       }),
     )
     .describe(

@@ -53,7 +53,7 @@ Only `scripts`, `docs` and the server exist today: the server answers MCP reques
 | `scripts`                    | Repository checks                                                              | Nothing else in the repository                           | Yes          |
 | `docs`                       | ADRs and guides                                                                | Nothing (no code)                                        | Yes          |
 
-The tool contract is the generated list of the server's tools and their schemas. The harness reads it as a file and never imports the server's code.
+The tool contract, `packages/wcag-evidence-mcp/tools.contract.json`, is what the server shows an MCP client: see [The tool contract](#the-tool-contract). The harness reads it as a file and never imports the server's code.
 
 Each arrow is a dependency from the table above. A part with no arrow leaving it depends on no other part. `docs` holds no code and is not drawn.
 
@@ -78,6 +78,15 @@ The server is split into ports and adapters ([ADR 0004](adr/0004-server-architec
 - `core/` holds the server's own logic: today the server's identity, the shape of its log, the catalog of the twelve WCAG criteria, the map of the axe-core rules tagged with them, the check of the URLs that the server may open ([ADR 0005](adr/0005-url-policy.md)), the ports of the browser and the rule engine, the `audit_route` use case with its output, the explanation of each criterion, and the caps on the text from the page ([ADR 0006](adr/0006-untrusted-page-text.md)). It imports nothing but itself and `zod`.
 - `adapters/` holds the adapters. Each folder in `adapters/` connects the core to one outside thing. Today there are five: `mcp` (the MCP SDK over stdio), `log-stream` (stderr), `package-json` (the package's own `package.json`), `playwright` (Chromium, the browser) and `axe` (axe-core, run inside the page). An adapter may import anything the server may, except another adapter and `bin.ts`.
 - `bin.ts` creates the adapters and wires them together. Apart from the adapters themselves and the tests, it is the only file of the server that imports an adapter, and nothing imports it.
+
+**Coverage.** `npm run ci` holds the server's logic, `core/` and `adapters/`, to stricter coverage thresholds than the rest of the repository, set a little under what the tests reached on 2026-11-21, measured on Windows:
+
+| Folder      | Lines (reached) | Branches (reached) | Functions (reached) | Statements (reached) |
+| ----------- | --------------- | ------------------ | ------------------- | -------------------- |
+| `core/`     | 95% (100%)      | 90% (92.6%)        | 95% (100%)          | 95% (100%)           |
+| `adapters/` | 95% (97.3%)     | 84% (86.7%)        | 85% (89.4%)         | 90% (94.0%)          |
+
+`bin.ts` only wires the parts and runs in a child process, where coverage cannot see it, so it keeps the threshold of the whole repository: 70% of lines, functions and statements and 60% of branches.
 
 The core cannot import axe-core ([ADR 0004](adr/0004-server-architecture.md)), so the map is a generated file that the core reads. `npm run gen` writes it, `core/axe-rules.json`, from the installed axe-core with the generator in `packages/wcag-evidence-mcp/scripts/`. A test fails when the map no longer matches axe-core.
 
@@ -176,11 +185,24 @@ The same explanation is a resource, `criterion://<number>`, as JSON (`applicatio
 
 - **The template** `criterion://{id}` is the one entry of `resources/templates/list`, registered with the SDK's `ResourceTemplate`, and the SDK reads the resources through it. It reads a URI as the URL standard does, so `CRITERION://1.4.3` reads as `criterion://1.4.3`.
 - **`resources/list`** gives the twelve, each with its number as name, its number and name as title, and what it requires as description.
-- **A URI that names none of the twelve** gets the SDK's error: code -32602 with the URI in `data.uri`, which the 2026-07-28 revision of the specification asks for. Earlier revisions used -32002, and the SDK gives -32602 in every era. Its message can repeat the URI that the client wrote, as `audit_route` repeats the URL that the agent gave; it holds no text of a page.
+- **A URI that names none of the twelve** gets the SDK's error: code -32602 with the URI in `data.uri`, which the 2026-07-28 revision of the specification asks for. Earlier revisions used -32002, and the SDK gives -32602 in every era. Its message can repeat the URI that the client wrote. This holds for every message of the SDK, such as that of an unknown tool: it can repeat what the client wrote, a tool name or a URI, and never holds text of a page. The server's own messages repeat at most the URL that the agent gave to `audit_route`.
 - **The lists never change,** so the server declares `listChanged` false for its tools and its resources.
 - **Both protocol eras** list and read the same; the 2026-07-28 era adds the fields that it adds to every result.
 
-**The contract.** `test/fixtures/contract.json` holds what the server shows a client: its capabilities, name, version and instructions when a session opens, its prompts (none), and what `tools/list` and `resources/templates/list` return, with names, schemas, annotations and descriptions. A test compares it with the server in both eras, so a change to what the agent reads shows as a change to that file.
+### The tool contract
+
+`packages/wcag-evidence-mcp/tools.contract.json` holds what the server shows an MCP client, the same in both protocol eras:
+
+- its capabilities, name, version and instructions, as a session opens;
+- its prompts (none);
+- what `tools/list` and `resources/templates/list` return, with names, schemas, annotations and descriptions;
+- the errors of the common cases, such as a URL that the policy refuses or a page that does not load, asked of the server with stand-in browsers that fail in a given way.
+
+[`docs/tools.md`](tools.md) is a readable reference made from it alone, with every field of the input and the output of each tool. A change to what the agent reads shows as a change to both files in the pull request.
+
+- **Where it lives.** In the server's folder, because the server produces it and changes with it. The harness reads it as a file: rule 3 of [ADR 0003](adr/0003-monorepo-layout.md) fails any import from `bench` that reaches the server's folder, so the harness cannot import it as a module.
+- **How it is written.** `test/contract.test.ts` opens a session with the server over MCP, through the SDK's in-memory link, and builds the contract as a client sees it. So it needs no build, and no file outside the tests and `bin.ts` imports an adapter (rule 3 of ADR 0004). It formats both files with Prettier's own settings, so that the format check passes on them, and compares them with the files on disk through `toMatchFileSnapshot` (vitest's check of a value against a whole file). A missing file fails the test too, unless the run writes snapshots.
+- **The order.** `npm run gen` writes the map of axe-core rules, formats it, and then runs that test with `--update`, which writes the contract and the reference: the contract reads the server, which reads the map. `npm run ci` runs the same test without `--update` and fails when either file differs or is missing. The test does not use the build.
 
 ### The component of a finding
 

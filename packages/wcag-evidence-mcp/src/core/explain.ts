@@ -9,9 +9,9 @@ import { CRITERIA, criterionIdSchema, criterionResource, type Criterion } from '
 
 // The descriptions below are what the agent reads of the output, in the tool's output schema.
 export const explanationSchema = z.strictObject({
-  criterion: criterionIdSchema,
-  name: z.string(),
-  level: z.enum(['A', 'AA']),
+  criterion: criterionIdSchema.describe("The criterion's number, such as 1.4.3"),
+  name: z.string().describe("The criterion's name in WCAG 2.2"),
+  level: z.enum(['A', 'AA']).describe("The criterion's level in WCAG 2.2"),
   requires: z.string().describe('What the criterion requires, in one sentence'),
   resource: z
     .string()

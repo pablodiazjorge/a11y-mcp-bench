@@ -42,17 +42,18 @@ function isResponse(message: JSONRPCMessage): message is JSONRPCMessage & Respon
 /**
  * Opens one connection to the server. A legacy session opens with the 2025 `initialize`
  * handshake for `version`; a modern session sends each request with the 2026-07-28 `_meta`
- * envelope. The browser and the rule engine are doubles unless `ports` gives others.
+ * envelope. The browser and the rule engine are doubles, and the identity a made-up one, unless
+ * `ports` gives others.
  */
 export async function openSession(
   era: Era,
   version = MODERN_VERSION,
-  ports: Partial<Pick<ServerDependencies, 'browser' | 'ruleEngine'>> = {},
+  ports: Partial<Pick<ServerDependencies, 'browser' | 'ruleEngine' | 'identity'>> = {},
 ): Promise<Session> {
   const [client, server] = InMemoryTransport.createLinkedPair();
   const logs: string[] = [];
   const handle = serve({
-    identity: IDENTITY,
+    identity: ports.identity ?? IDENTITY,
     log: (line) => logs.push(line),
     browser: ports.browser ?? createBrowserDouble(),
     ruleEngine: ports.ruleEngine ?? createRuleEngineDouble(),

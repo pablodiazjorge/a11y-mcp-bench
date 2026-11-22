@@ -1,22 +1,10 @@
 {
   "server": {
-    "capabilities": {
-      "tools": {
-        "listChanged": false
-      },
-      "resources": {
-        "listChanged": false
-      }
-    },
-    "serverInfo": {
-      "name": "test-server",
-      "version": "1.2.3"
-    },
+    "capabilities": { "tools": { "listChanged": false }, "resources": { "listChanged": false } },
+    "serverInfo": { "name": "wcag-evidence-mcp", "version": "0.0.0" },
     "instructions": null
   },
-  "prompts": {
-    "error": -32601
-  },
+  "prompts": { "error": -32601 },
   "tools": [
     {
       "name": "audit_route",
@@ -100,10 +88,7 @@
                 },
                 "criteria": {
                   "type": "array",
-                  "items": {
-                    "type": "string",
-                    "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$"
-                  },
+                  "items": { "type": "string", "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$" },
                   "description": "The criteria of the twelve that the rule checks, defined in definitions"
                 },
                 "rule": {
@@ -118,7 +103,8 @@
                       "properties": {
                         "kind": {
                           "type": "string",
-                          "const": "contrast"
+                          "const": "contrast",
+                          "description": "A measurement of contrast"
                         },
                         "ratio": {
                           "type": "number",
@@ -167,30 +153,15 @@
                       "properties": {
                         "kind": {
                           "type": "string",
-                          "const": "target-size"
+                          "const": "target-size",
+                          "description": "A measurement of the size of a target"
                         },
                         "width": {
-                          "anyOf": [
-                            {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
+                          "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }],
                           "description": "The width of the target, in CSS pixels, when axe-core measured it"
                         },
                         "height": {
-                          "anyOf": [
-                            {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
+                          "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }],
                           "description": "The height of the target, in CSS pixels, when axe-core measured it"
                         },
                         "required": {
@@ -199,26 +170,13 @@
                           "description": "The width and height that pass, in CSS pixels: 24"
                         },
                         "offset": {
-                          "anyOf": [
-                            {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
+                          "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }],
                           "description": "The space to the nearest other target, in CSS pixels, when measured"
                         },
                         "requiredOffset": {
                           "anyOf": [
-                            {
-                              "type": "number",
-                              "exclusiveMinimum": 0
-                            },
-                            {
-                              "type": "null"
-                            }
+                            { "type": "number", "exclusiveMinimum": 0 },
+                            { "type": "null" }
                           ],
                           "description": "The space that passes when the target is smaller, in CSS pixels: 24"
                         }
@@ -239,15 +197,13 @@
                       "properties": {
                         "kind": {
                           "type": "string",
-                          "const": "failed-checks"
+                          "const": "failed-checks",
+                          "description": "The checks that failed, for a rule with no numbers to report"
                         },
                         "checks": {
                           "minItems": 1,
                           "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]{0,63}$"
-                          },
+                          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
                           "description": "The ids of axe-core's checks that the element fails, such as has-alt and aria-label: each names one way the element could pass"
                         },
                         "fromPage": {
@@ -281,18 +237,10 @@
                         },
                         "y": {
                           "type": "number",
-                          "description": "From the top edge of the page, scrolled or not, in CSS pixels"
+                          "description": "From the top edge of the page, whatever the scroll, in CSS pixels"
                         },
-                        "width": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "In CSS pixels"
-                        },
-                        "height": {
-                          "type": "number",
-                          "minimum": 0,
-                          "description": "In CSS pixels"
-                        }
+                        "width": { "type": "number", "minimum": 0, "description": "In CSS pixels" },
+                        "height": { "type": "number", "minimum": 0, "description": "In CSS pixels" }
                       },
                       "required": ["x", "y", "width", "height"],
                       "additionalProperties": false,
@@ -334,9 +282,7 @@
                                       "maxLength": 64,
                                       "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)+$"
                                     },
-                                    {
-                                      "type": "null"
-                                    }
+                                    { "type": "null" }
                                   ],
                                   "description": "Only with nearest-custom-element: the app's component whose template uses the tag, such as the one that holds a mat-checkbox. Null when that component has no styles to read it from"
                                 },
@@ -349,9 +295,7 @@
                               "required": ["tag", "usedIn", "method"],
                               "additionalProperties": false
                             },
-                            {
-                              "type": "null"
-                            }
+                            { "type": "null" }
                           ],
                           "description": "The Angular component that declares the element, read from the page's own elements and attributes: a hint of where to look in the code, not a file. Null when the page is not an Angular app, the element is outside every component, or the tag is not a plain custom element name, as for a component with an attribute selector such as button[mat-button]"
                         }
@@ -378,11 +322,10 @@
               "properties": {
                 "criterion": {
                   "type": "string",
-                  "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$"
+                  "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$",
+                  "description": "The criterion's number, such as 1.4.3"
                 },
-                "name": {
-                  "type": "string"
-                },
+                "name": { "type": "string", "description": "The criterion's name in WCAG 2.2" },
                 "requires": {
                   "type": "string",
                   "description": "What the criterion requires, in one sentence"
@@ -403,10 +346,7 @@
           },
           "notChecked": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$"
-            },
+            "items": { "type": "string", "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$" },
             "description": "Criteria asked for that no rule checks yet: their own checks are not built, so the audit says nothing about them"
           },
           "truncated": {
@@ -420,20 +360,19 @@
               "properties": {
                 "rule": {
                   "type": "string",
-                  "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                  "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                  "description": "The axe-core rule whose findings were left out"
                 },
                 "criteria": {
                   "type": "array",
-                  "items": {
-                    "type": "string",
-                    "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$"
-                  },
+                  "items": { "type": "string", "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$" },
                   "description": "The criteria to ask for to see them"
                 },
                 "findings": {
                   "type": "integer",
                   "exclusiveMinimum": 0,
-                  "maximum": 9007199254740991
+                  "maximum": 9007199254740991,
+                  "description": "How many of its findings were left out"
                 }
               },
               "required": ["rule", "criteria", "findings"],
@@ -487,14 +426,14 @@
         "properties": {
           "criterion": {
             "type": "string",
-            "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$"
+            "pattern": "^[1-4]\\.\\d\\.\\d{1,2}$",
+            "description": "The criterion's number, such as 1.4.3"
           },
-          "name": {
-            "type": "string"
-          },
+          "name": { "type": "string", "description": "The criterion's name in WCAG 2.2" },
           "level": {
             "type": "string",
-            "enum": ["A", "AA"]
+            "enum": ["A", "AA"],
+            "description": "The criterion's level in WCAG 2.2"
           },
           "requires": {
             "type": "string",
@@ -514,16 +453,12 @@
           },
           "axeCoreRules": {
             "type": "array",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "description": "The axe-core rules that audit_route runs for the criterion and that can give a finding, which names it. Empty when axe-core has none"
           },
           "reviewOnlyRules": {
             "type": "array",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "description": "axe-core rules that audit_route runs for the criterion but that only mark an element for review, which audit_route does not report: what they look for is left for a person"
           },
           "ownCheck": {
@@ -533,13 +468,8 @@
           },
           "class": {
             "anyOf": [
-              {
-                "type": "string",
-                "enum": ["automatic", "semi-automatic"]
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "enum": ["automatic", "semi-automatic"] },
+              { "type": "null" }
             ],
             "description": "The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings. null: set when the keyboard checks are designed"
           },
@@ -573,6 +503,169 @@
       "title": "WCAG criterion",
       "description": "One of the twelve WCAG 2.2 criteria that audit_route covers, by number, such as criterion://1.4.3: what it requires, how this server checks it and what is left for a person to check, as explain_criterion returns it.",
       "mimeType": "application/json"
+    }
+  ],
+  "errors": [
+    {
+      "request": "tools/call audit_route",
+      "when": "The URL fails the URL policy",
+      "params": { "name": "audit_route", "arguments": { "url": "http://example.com/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The URL is refused (host): only http://localhost or http://127.0.0.1 with an explicit port, other than 80, followed by a path, are allowed."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "A criterion is not one of the twelve",
+      "params": {
+        "name": "audit_route",
+        "arguments": { "url": "http://localhost:4200/", "criteria": ["2.1.3"] }
+      },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Input validation error: Invalid arguments for tool audit_route: criteria.0: Invalid option: expected one of \"1.1.1\"|\"1.3.1\"|\"1.3.5\"|\"1.4.3\"|\"2.1.1\"|\"2.1.2\"|\"2.4.3\"|\"2.4.4\"|\"2.4.7\"|\"2.4.11\"|\"2.5.8\"|\"4.1.2\""
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The page redirects to a URL that fails the policy",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The page redirected to a URL that is refused (port-missing), so it was not audited."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The page comes from another address",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The page was not served from this machine, so it was not audited."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The page does not load",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The page could not be loaded (ERR_CONNECTION_REFUSED). Check that the app is being served at that URL."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The page goes to another document during the audit",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The page went to another document while it was being audited, as through a redirect in a script, so it was not audited."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The page or the audit takes too long",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The page did not load, or the audit did not finish, within the time limit."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The browser cannot start, or closes",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The browser is not available: it could not be started, or it closed during the audit."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
+      "when": "The result of axe-core cannot be read",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The audit failed while reading the page, so it returns no findings."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call explain_criterion",
+      "when": "The criterion is not one of the twelve",
+      "params": { "name": "explain_criterion", "arguments": { "criterion": "2.1.3" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Input validation error: Invalid arguments for tool explain_criterion: criterion: Invalid option: expected one of \"1.1.1\"|\"1.3.1\"|\"1.3.5\"|\"1.4.3\"|\"2.1.1\"|\"2.1.2\"|\"2.4.3\"|\"2.4.4\"|\"2.4.7\"|\"2.4.11\"|\"2.5.8\"|\"4.1.2\""
+          }
+        ]
+      }
+    },
+    {
+      "request": "resources/read",
+      "when": "The URI names none of the twelve criteria",
+      "params": { "uri": "criterion://2.1.3" },
+      "answer": {
+        "error": {
+          "code": -32602,
+          "message": "Resource not found: criterion://2.1.3",
+          "data": { "uri": "criterion://2.1.3" }
+        }
+      }
+    },
+    {
+      "request": "tools/call",
+      "when": "The tool does not exist",
+      "params": { "name": "audit_page", "arguments": {} },
+      "answer": { "error": { "code": -32602, "message": "Tool audit_page not found" } }
     }
   ]
 }

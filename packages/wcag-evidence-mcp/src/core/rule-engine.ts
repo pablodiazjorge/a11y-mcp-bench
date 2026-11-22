@@ -11,7 +11,7 @@ const pixels = z.number().finite();
 export const rectSchema = z
   .strictObject({
     x: pixels.describe('From the left edge of the page, in CSS pixels'),
-    y: pixels.describe('From the top edge of the page, scrolled or not, in CSS pixels'),
+    y: pixels.describe('From the top edge of the page, whatever the scroll, in CSS pixels'),
     width: pixels.nonnegative().describe('In CSS pixels'),
     height: pixels.nonnegative().describe('In CSS pixels'),
   })
@@ -28,7 +28,7 @@ export const checkIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
  */
 export const contrastSchema = z
   .strictObject({
-    kind: z.literal('contrast'),
+    kind: z.literal('contrast').describe('A measurement of contrast'),
     ratio: z
       .number()
       .positive()
@@ -46,7 +46,7 @@ export const contrastSchema = z
 
 export const targetSizeSchema = z
   .strictObject({
-    kind: z.literal('target-size'),
+    kind: z.literal('target-size').describe('A measurement of the size of a target'),
     width: pixels
       .nonnegative()
       .nullable()
@@ -69,7 +69,9 @@ export const targetSizeSchema = z
 
 export const failedChecksSchema = z
   .strictObject({
-    kind: z.literal('failed-checks'),
+    kind: z
+      .literal('failed-checks')
+      .describe('The checks that failed, for a rule with no numbers to report'),
     checks: z
       .array(checkIdSchema)
       .min(1)

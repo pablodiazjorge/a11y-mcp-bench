@@ -23,7 +23,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/wcag-evidence-mcp/tsconfig.json",
     "build": "npm run build --workspace wcag-evidence-mcp",
-    "gen": "npm run gen --workspace wcag-evidence-mcp && prettier --write packages/wcag-evidence-mcp/src/core/axe-rules.json",
+    "gen": "npm run gen --workspace wcag-evidence-mcp && prettier --write packages/wcag-evidence-mcp/src/core/axe-rules.json && vitest run packages/wcag-evidence-mcp/test/contract.test.ts --update",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "browser:install": "playwright-core install --only-shell --no-remove chromium",
