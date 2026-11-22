@@ -4,7 +4,7 @@
 import * as z from 'zod';
 import { AXE_RULE_MAP, type AxeRule } from './axe-rules.ts';
 import type { BrowserPort, VisitFailure } from './browser.ts';
-import { CRITERIA, criterionIdSchema } from './criteria.ts';
+import { CRITERIA, criterionIdSchema, criterionResource } from './criteria.ts';
 import { findingIds, routeOf } from './finding-id.ts';
 import { NAME_RULES } from './name-rules.ts';
 import { openingTag, pageName, pageSelector } from './page-text.ts';
@@ -115,6 +115,11 @@ const definitionSchema = z.strictObject({
   criterion: criterionIdSchema,
   name: z.string(),
   requires: z.string().describe('What the criterion requires, in one sentence'),
+  resource: z
+    .string()
+    .describe(
+      "The criterion's resource on this server: how the server checks it and what is left for a person. Calling explain_criterion with the criterion's number returns the same",
+    ),
   understanding: z
     .string()
     .describe("The criterion's Understanding page at the W3C, which explains it in full"),
@@ -336,6 +341,7 @@ function outputWith(
       criterion: criterion.id,
       name: criterion.name,
       requires: criterion.requires,
+      resource: criterionResource(criterion.id),
       understanding: criterion.understanding,
     })),
     notChecked: [...context.notChecked],

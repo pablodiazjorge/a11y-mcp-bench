@@ -67,6 +67,7 @@ describe('auditedRules, on rules made up for the test', () => {
     enabled: true,
     experimental: false,
     deprecated: false,
+    reviewOnFail: false,
   };
 
   it('leaves out an experimental or a deprecated rule even when axe-core runs it by default', () => {
@@ -154,6 +155,7 @@ describe('auditRoute', () => {
       name: 'Link Purpose (In Context)',
       requires:
         'The purpose of each link can be told from its text, or from its text and its context.',
+      resource: 'criterion://2.4.4',
       understanding: 'https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html',
     });
   });

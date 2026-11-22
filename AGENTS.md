@@ -6,7 +6,7 @@ Rules for coding agents that work in this repository. `CLAUDE.md` only imports t
 
 A benchmark that asks one question: does an accessibility MCP server help a coding agent fix WCAG defects in an Angular app, and at what cost? An MCP (Model Context Protocol) server gives an agent extra tools to call. WCAG (Web Content Accessibility Guidelines) is the standard that defines an accessibility defect.
 
-So far the repository holds the tooling, continuous integration (CI), these rules, the project documents and the MCP server with its first tool. The Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
+So far the repository holds the tooling, continuous integration (CI), these rules, the project documents and the MCP server with its first tools. The Angular app and the benchmark come in later pull requests, and each adds its row to the map below.
 
 ## Map
 

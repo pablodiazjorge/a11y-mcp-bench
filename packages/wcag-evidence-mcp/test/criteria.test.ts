@@ -8,6 +8,7 @@ import MarkdownIt from 'markdown-it';
 import type { Token } from 'markdown-it';
 import { describe, expect, it } from 'vitest';
 import { criterionOfTag, readAxeFacts } from '../scripts/axe-rule-map.ts';
+import { auditedRules } from '../src/core/audit.ts';
 import { AXE_RULE_MAP } from '../src/core/axe-rules.ts';
 import { CRITERIA, criterionSchema, type Criterion } from '../src/core/criteria.ts';
 
@@ -160,6 +161,7 @@ const valid: Criterion = {
   understanding: 'https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html',
   decidedBy: 'own-check',
   class: null,
+  manual: null,
 };
 
 describe('the criteria catalog', () => {
@@ -193,6 +195,36 @@ describe('the criteria catalog', () => {
     }
   });
 
+  it('says what is left for manual testing as the scope page does, and nothing where the page says nothing', () => {
+    const page = sections();
+
+    for (const { id, manual } of CRITERIA) {
+      const item = labeled(page.get(id) ?? [], /^Manual:$/);
+      const sentence = item === undefined ? null : textOf(item.rest).trim();
+      expect(manual, id).toBe(
+        sentence === null ? null : sentence.charAt(0).toUpperCase() + sentence.slice(1),
+      );
+    }
+    expect(CRITERIA.filter(({ manual }) => manual === null).map(({ id }) => id)).toStrictEqual([
+      '2.4.7',
+      '2.4.11',
+    ]);
+  });
+
+  it('names in what is left for manual testing the rules that only mark for review', () => {
+    const ruleIds = new Set(AXE_RULE_MAP.rules.map(({ id }) => id));
+
+    for (const { id, manual } of CRITERIA) {
+      const named = [...(manual ?? '').matchAll(/`([^`]+)`/g)]
+        .map(([, span]) => span ?? '')
+        .filter((span) => ruleIds.has(span));
+      const reviewOnly = auditedRules()
+        .filter(({ criteria, reviewOnFail }) => reviewOnFail && criteria.includes(id))
+        .map((rule) => rule.id);
+      expect(named.sort(), id).toStrictEqual(reviewOnly.sort());
+    }
+  });
+
   it('accepts a valid criterion and rejects one outside the scope', () => {
     expect(criterionSchema.parse(valid)).toStrictEqual(valid);
     for (const wrong of [
@@ -203,6 +235,7 @@ describe('the criteria catalog', () => {
       { ...valid, decidedBy: 'axe' },
       { ...valid, class: 'manual' },
       { ...valid, name: '' },
+      { ...valid, manual: '' },
     ]) {
       expect(criterionSchema.safeParse(wrong).success).toBe(false);
     }

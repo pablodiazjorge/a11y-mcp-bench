@@ -8,7 +8,7 @@ This repository will hold a benchmark that answers that question, and one of the
 
 ## Status
 
-Early. There is no benchmark to run yet: the repository holds the tooling, continuous integration (CI), the project rules and the server with its first tool, `audit_route`, which audits one local page with axe-core.
+Early. There is no benchmark to run yet: the repository holds the tooling, continuous integration (CI), the project rules and the server with its first two tools: `audit_route`, which audits one local page with axe-core, and `explain_criterion`, which explains any of the twelve criteria that the server covers; the same explanation is also a resource.
 
 ## What it will measure
 

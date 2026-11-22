@@ -1,6 +1,6 @@
 // Builds the map of axe-core rules in src/core/axe-rules.json from what axe-core says about its
-// own rules. It records facts only: the criteria that each rule carries and whether axe-core
-// runs it by default. It decides nothing about which rules the server runs.
+// own rules. It records facts only: the criteria that each rule carries, whether axe-core runs it
+// by default and whether it reports a failure only as one to review. It decides nothing about which rules the server runs.
 
 import * as z from 'zod';
 import type { AxeRule, AxeRuleMap } from '../src/core/axe-rules.ts';
@@ -21,7 +21,12 @@ const axeSchema = z.object({
   }),
   _audit: z.object({
     rules: z.array(
-      z.looseObject({ id: z.string().min(1), tags: z.array(z.string()), enabled: z.boolean() }),
+      z.looseObject({
+        id: z.string().min(1),
+        tags: z.array(z.string()),
+        enabled: z.boolean(),
+        reviewOnFail: z.boolean(),
+      }),
     ),
   }),
 });
@@ -34,6 +39,8 @@ export interface AxeFacts {
     enabled: boolean;
     /** Whether axe-core runs the rule on a whole page when it is given no rules or tags. */
     runsByDefault: boolean;
+    /** Whether axe-core reports a failure of the rule as one to review, never as a violation. */
+    reviewOnFail: boolean;
   }[];
 }
 
@@ -51,6 +58,7 @@ export function readAxeFacts(axe: unknown): AxeFacts {
     enabled: rule.enabled,
     // A run of a whole page with no options: what `axe.run(document)` does.
     runsByDefault: utils.ruleShouldRun(originals[index] ?? rule, { page: true }, {}) === true,
+    reviewOnFail: rule.reviewOnFail,
   }));
   return { version, rules };
 }
@@ -77,7 +85,7 @@ function byNumber(a: string, b: string): number {
 /** Builds the map: every rule that carries the tag of one of `criteria`, in the order of ids. */
 export function buildAxeRuleMap(facts: AxeFacts, criteria: readonly string[]): AxeRuleMap {
   const rules: AxeRule[] = [];
-  for (const { id, tags, enabled, runsByDefault } of facts.rules) {
+  for (const { id, tags, enabled, runsByDefault, reviewOnFail } of facts.rules) {
     const tagged = [...new Set(tags.map(criterionOfTag).filter((c) => c !== undefined))];
     const ours = tagged.filter((criterion) => criteria.includes(criterion)).sort(byNumber);
     if (ours.length === 0) continue;
@@ -89,6 +97,7 @@ export function buildAxeRuleMap(facts: AxeFacts, criteria: readonly string[]): A
       enabled,
       experimental: tags.includes('experimental'),
       deprecated: tags.includes('deprecated'),
+      reviewOnFail,
     });
   }
   rules.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

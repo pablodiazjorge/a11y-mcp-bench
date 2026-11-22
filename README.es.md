@@ -8,7 +8,7 @@ Este repositorio tendrá un banco de pruebas que responda a esa pregunta y uno d
 
 ## Estado
 
-En sus inicios. Todavía no hay banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y el servidor con su primera herramienta, `audit_route`, que audita una página local con axe-core.
+En sus inicios. Todavía no hay banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y el servidor con sus dos primeras herramientas: `audit_route`, que audita una página local con axe-core, y `explain_criterion`, que explica cualquiera de los doce criterios que abarca el servidor; la misma explicación es también un recurso.
 
 ## Qué medirá
 
