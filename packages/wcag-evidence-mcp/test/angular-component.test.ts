@@ -43,13 +43,20 @@ async function audit(path: string): Promise<AuditOutput> {
 
 /** Each finding as its rule, its selector and its component, written on one line. */
 function components(output: AuditOutput): string[] {
-  return output.findings.map(({ rule, location: { selector, component } }) => {
-    const named =
-      component === null
-        ? 'none'
-        : `${component.tag} ${component.usedIn ?? '-'} ${component.method}`;
-    return `${rule} | ${selector} | ${named}`;
-  });
+  return output.findings.map(
+    ({
+      rule,
+      location: {
+        fromPage: { selector, component },
+      },
+    }) => {
+      const named =
+        component === null
+          ? 'none'
+          : `${component.tag} ${component.usedIn ?? '-'} ${component.method}`;
+      return `${rule} | ${selector} | ${named}`;
+    },
+  );
 }
 
 const CARD = 'app-card:nth-child';
@@ -207,8 +214,8 @@ describe('the identifier of a finding with a component', { timeout: TIMEOUT_MS }
     const second = await audit('/styling');
 
     expect(second.findings.map(({ id }) => id)).toStrictEqual(first.findings.map(({ id }) => id));
-    expect(first.findings.map(({ location }) => location.component)).not.toStrictEqual(
-      second.findings.map(({ location }) => location.component),
+    expect(first.findings.map(({ location }) => location.fromPage.component)).not.toStrictEqual(
+      second.findings.map(({ location }) => location.fromPage.component),
     );
   });
 });

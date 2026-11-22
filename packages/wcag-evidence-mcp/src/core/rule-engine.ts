@@ -26,57 +26,63 @@ export const checkIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
  * What the engine measured on a failing element. Every value is a number, a color or an id that
  * the server writes, never text taken from the page.
  */
+export const contrastSchema = z
+  .strictObject({
+    kind: z.literal('contrast'),
+    ratio: z
+      .number()
+      .positive()
+      .describe('The contrast of the text with its background, such as 2.84 for 2.84:1'),
+    required: z
+      .number()
+      .positive()
+      .describe('The contrast that the text needs: 4.5, or 3 for large text'),
+    foreground: hexColor.describe('The color of the text, as #rrggbb'),
+    background: hexColor.describe('The color behind the text, as #rrggbb'),
+    fontSizePx: z.number().positive().describe('The size of the text, in CSS pixels'),
+    bold: z.boolean().describe('Whether the text is bold, which makes 18.66 px count as large'),
+  })
+  .describe('Text whose contrast with its background is too low');
+
+export const targetSizeSchema = z
+  .strictObject({
+    kind: z.literal('target-size'),
+    width: pixels
+      .nonnegative()
+      .nullable()
+      .describe('The width of the target, in CSS pixels, when axe-core measured it'),
+    height: pixels
+      .nonnegative()
+      .nullable()
+      .describe('The height of the target, in CSS pixels, when axe-core measured it'),
+    required: pixels.positive().describe('The width and height that pass, in CSS pixels: 24'),
+    offset: pixels
+      .nonnegative()
+      .nullable()
+      .describe('The space to the nearest other target, in CSS pixels, when measured'),
+    requiredOffset: pixels
+      .positive()
+      .nullable()
+      .describe('The space that passes when the target is smaller, in CSS pixels: 24'),
+  })
+  .describe('A pointer target that is too small and too close to another one');
+
+export const failedChecksSchema = z
+  .strictObject({
+    kind: z.literal('failed-checks'),
+    checks: z
+      .array(checkIdSchema)
+      .min(1)
+      .describe(
+        "The ids of axe-core's checks that the element fails, such as has-alt and aria-label: each names one way the element could pass",
+      ),
+  })
+  .describe('A rule without numbers to report: what the element lacks');
+
 export const measurementSchema = z.discriminatedUnion('kind', [
-  z
-    .strictObject({
-      kind: z.literal('contrast'),
-      ratio: z
-        .number()
-        .positive()
-        .describe('The contrast of the text with its background, such as 2.84 for 2.84:1'),
-      required: z
-        .number()
-        .positive()
-        .describe('The contrast that the text needs: 4.5, or 3 for large text'),
-      foreground: hexColor.describe('The color of the text, as #rrggbb'),
-      background: hexColor.describe('The color behind the text, as #rrggbb'),
-      fontSizePx: z.number().positive().describe('The size of the text, in CSS pixels'),
-      bold: z.boolean().describe('Whether the text is bold, which makes 18.66 px count as large'),
-    })
-    .describe('Text whose contrast with its background is too low'),
-  z
-    .strictObject({
-      kind: z.literal('target-size'),
-      width: pixels
-        .nonnegative()
-        .nullable()
-        .describe('The width of the target, in CSS pixels, when axe-core measured it'),
-      height: pixels
-        .nonnegative()
-        .nullable()
-        .describe('The height of the target, in CSS pixels, when axe-core measured it'),
-      required: pixels.positive().describe('The width and height that pass, in CSS pixels: 24'),
-      offset: pixels
-        .nonnegative()
-        .nullable()
-        .describe('The space to the nearest other target, in CSS pixels, when measured'),
-      requiredOffset: pixels
-        .positive()
-        .nullable()
-        .describe('The space that passes when the target is smaller, in CSS pixels: 24'),
-    })
-    .describe('A pointer target that is too small and too close to another one'),
-  z
-    .strictObject({
-      kind: z.literal('failed-checks'),
-      checks: z
-        .array(checkIdSchema)
-        .min(1)
-        .describe(
-          "The ids of axe-core's checks that the element fails, such as has-alt and aria-label: each names one way the element could pass",
-        ),
-    })
-    .describe('A rule without numbers to report: what the element lacks'),
+  contrastSchema,
+  targetSizeSchema,
+  failedChecksSchema,
 ]);
 
 /**
@@ -127,6 +133,17 @@ export const engineFindingSchema = z.strictObject({
   documentIndex: z.number().int().nonnegative(),
   measurement: measurementSchema,
   component: componentSchema,
+  /**
+   * The element's tag and attributes, as the page wrote them, for its opening tag. The engine
+   * leaves out its children and comments; the core caps the rest (ADR 0006).
+   */
+  element: z.strictObject({
+    tag: z.string(),
+    attributes: z.array(z.strictObject({ name: z.string(), value: z.string() })),
+    attributeCount: z.number().int().nonnegative(),
+  }),
+  /** The element's accessible name, as the page wrote it, or null when the engine has none. */
+  accessibleName: z.string().nullable(),
 });
 
 export type Rect = z.infer<typeof rectSchema>;

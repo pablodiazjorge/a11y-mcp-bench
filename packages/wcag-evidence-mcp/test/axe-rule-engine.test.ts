@@ -14,7 +14,8 @@ function node(
   target: unknown[] = ['#low'],
   component: unknown = null,
 ) {
-  return { target, rect: RECT, documentIndex: 3, checks, component };
+  const element = { tag: 'p', attributes: [{ name: 'id', value: 'low' }], attributeCount: 1 };
+  return { target, rect: RECT, documentIndex: 3, checks, component, element, accessibleName: null };
 }
 
 function result(rule: string, nodes: unknown[], version = axe.version) {
@@ -59,6 +60,8 @@ describe('the axe-core rule engine', () => {
           bold: false,
         },
         component: null,
+        element: { tag: 'p', attributes: [{ name: 'id', value: 'low' }], attributeCount: 1 },
+        accessibleName: null,
       },
     ]);
   });

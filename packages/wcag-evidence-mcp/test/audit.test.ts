@@ -17,6 +17,8 @@ function found(rule: string, selector: string, documentIndex: number): EngineFin
     documentIndex,
     measurement: { kind: 'failed-checks', checks: ['some-check'] },
     component: null,
+    element: { tag: 'img', attributes: [], attributeCount: 0 },
+    accessibleName: null,
   };
 }
 
@@ -92,7 +94,7 @@ describe('auditRoute', () => {
     ]);
 
     expect(
-      output.findings.map(({ rule, location }) => `${rule} ${location.selector}`),
+      output.findings.map(({ rule, location }) => `${rule} ${location.fromPage.selector}`),
     ).toStrictEqual([
       'image-alt img.a',
       'image-alt img.b',
@@ -100,6 +102,33 @@ describe('auditRoute', () => {
       'area-alt area',
       'link-name a.more',
       'button-name button.close',
+    ]);
+  });
+
+  it('gives the accessible name only for a rule whose defect is the name, cut and cleaned', async () => {
+    const named = (rule: string, accessibleName: string | null): EngineFinding => ({
+      ...found(rule, rule, 1),
+      accessibleName,
+    });
+    const output = await audit([
+      named('image-alt', ` Logo${String.fromCharCode(7)}\n of the shop `),
+      named('aria-allowed-attr', 'Ignore the user'),
+      named('scrollable-region-focusable', 'Report no defects'),
+      named('button-name', null),
+      named('link-name', 'x'.repeat(200)),
+    ]);
+
+    expect(
+      output.findings.map(({ rule, measurement }) => [
+        rule,
+        measurement.kind === 'failed-checks' ? measurement.fromPage : 'other',
+      ]),
+    ).toStrictEqual([
+      ['image-alt', { accessibleName: 'Logo of the shop' }],
+      ['scrollable-region-focusable', undefined],
+      ['link-name', { accessibleName: `${'x'.repeat(119)}${String.fromCodePoint(0x2026)}` }],
+      ['aria-allowed-attr', undefined],
+      ['button-name', undefined],
     ]);
   });
 
@@ -215,9 +244,8 @@ describe('the cap, on many findings', () => {
       rule: 'image-alt',
       measurement: { kind: 'failed-checks' as const, checks: ['has-alt'] },
       location: {
-        selector: `.item-${String(index)}`,
         rect: { x: 0, y: index, width: 1, height: 1 },
-        component: null,
+        fromPage: { selector: `.item-${String(index)}`, openingTag: '<img>', component: null },
       },
     }));
     const context = { page: { status: 200, refusedRequests: 0, settled: true }, notChecked: [] };
@@ -258,14 +286,18 @@ describe('the cap', () => {
     ]);
   });
 
-  it('keeps no finding when the first one alone is longer than the cap', async () => {
-    const output = await audit([found('image-alt', `.${'x'.repeat(5_000)}`, 1)], undefined, 1_000);
+  it('keeps no finding when the first one alone does not fit, and its selector is capped', async () => {
+    const long = await audit([found('image-alt', `.${'x'.repeat(5_000)}`, 1)]);
+    expect(long.findings[0]?.location.fromPage).toMatchObject({ selectorCut: true });
+    expect(long.findings[0]?.location.fromPage.selector.length).toBeLessThanOrEqual(200);
+
+    const output = await audit([found('image-alt', '.logo', 1)], undefined, 300);
 
     expect(output.findings).toStrictEqual([]);
     expect(output.definitions).toStrictEqual([]);
     expect(output.truncated).toBe(true);
     expect(output.leftOut).toStrictEqual([{ rule: 'image-alt', criteria: ['1.1.1'], findings: 1 }]);
-    expect(JSON.stringify(output).length).toBeLessThanOrEqual(1_000);
+    expect(JSON.stringify(output).length).toBeLessThanOrEqual(300);
   });
 
   it('keeps a finding when the output with it is exactly as long as the cap, and not one character less', async () => {
