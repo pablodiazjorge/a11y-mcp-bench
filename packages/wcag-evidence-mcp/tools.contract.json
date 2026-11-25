@@ -467,15 +467,13 @@
             "description": "The server's own check of the criterion, beyond axe-core. A heuristic gives candidates, some of them wrong, that a person confirms"
           },
           "class": {
-            "anyOf": [
-              { "type": "string", "enum": ["automatic", "semi-automatic"] },
-              { "type": "null" }
-            ],
-            "description": "The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings. null: set when the keyboard checks are designed"
+            "type": "string",
+            "enum": ["automatic", "semi-automatic"],
+            "description": "The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings"
           },
           "manual": {
-            "description": "What is left for a person to check once all of the server's checks for the criterion are built. While ownCheck says not built yet, a person also checks what that check would. null until the criterion's own check is designed",
-            "type": ["string", "null"]
+            "type": "string",
+            "description": "What is left for a person to check once all of the server's checks for the criterion are built. While ownCheck says not built yet, a person also checks what that check would"
           }
         },
         "required": [
