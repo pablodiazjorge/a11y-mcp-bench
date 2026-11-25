@@ -117,6 +117,45 @@ export type StyleProperty = (typeof STYLE_PROPERTIES)[number];
  */
 export type StyleSnapshot = Readonly<Record<string, string>>;
 
+/** A layer of the page that can hide the focused element, and its rectangle in the viewport. */
+export interface Layer {
+  readonly key: ElementKey;
+  readonly box: Box;
+  /**
+   * Whether the layer is inside the element's parent, as the parts that draw a control of Angular
+   * Material beside its native input are.
+   */
+  readonly inParent: boolean;
+}
+
+/** What lies over the focused element, read for 2.4.11 (ADR 0007). */
+export interface Coverage {
+  /** The element's rectangle in the viewport. */
+  readonly box: Box;
+  /** The size of the viewport, without its scrollbars, in CSS pixels. */
+  readonly viewport: { readonly width: number; readonly height: number };
+  /**
+   * At each point of a grid of 5 by 5 over the element's part in the viewport, row after row, the
+   * key of the first element from the top that paints there, or null when the element or an element
+   * inside it comes first, or one of its ancestors when the element has pointer-events: none. Layers
+   * that paint nothing are skipped. Empty when no part of the element is in the viewport.
+   */
+  readonly points: readonly (ElementKey | null)[];
+  /**
+   * Whether the element, or an element inside it, paints. A native input of Angular Material, with
+   * an opacity of 0, does not: the elements beside it draw the control, and its focus indicator is
+   * a layer over it.
+   */
+  readonly draws: boolean;
+  /**
+   * The positioned layers (`fixed`, `sticky` or `absolute`) that paint and reach the element's part
+   * in the viewport, other than its ancestors and descendants and than the layers that a point of
+   * the grid shows beneath it. Read only when a point shows the element: otherwise the points
+   * decide alone.
+   */
+  readonly layers: readonly Layer[];
+}
+
 /** What the keyboard walk needs from the browser (ADR 0007). Every read is in the isolated world. */
 export interface KeyboardDriver {
   /**
@@ -142,6 +181,11 @@ export interface KeyboardDriver {
   styles(key: ElementKey): Promise<StyleSnapshot>;
   /** The elements with a listener of a click event, and whether the walk reached them. */
   clickTargets(reached: readonly ElementKey[]): Promise<readonly ClickTarget[]>;
+  /**
+   * What lies over the element now, deep into open shadow roots; null when it is no longer in the
+   * page or not drawn.
+   */
+  coverage(key: ElementKey): Promise<Coverage | null>;
 }
 
 /** A page that loaded from an allowed URL, served from a local address. */

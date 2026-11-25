@@ -1,6 +1,6 @@
 # WCAG 2.2 scope
 
-The server's audit tools check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The first tool, `audit_route`, runs the axe-core rules and walks the page with the keyboard for the server's own checks, all built but that of 2.4.11. This page fixes what the tools check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
+The server's audit tools check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The first tool, `audit_route`, runs the axe-core rules and walks the page with the keyboard for the server's own checks. This page fixes what the tools check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
 
 The criteria and their wording come from the [WCAG 2.2 W3C Recommendation](https://www.w3.org/TR/WCAG22/) of 12 December 2024. The rule identifiers come from axe-core 4.14.0 (the open-source library of automatic accessibility checks that the server runs), the version that the counts on this page come from. Both were checked on 2026-11-20. Why the server exists and why it stays small is in [ADR 0001](adr/0001-scope-and-non-goals.md); what a finding looks like is in [ADR 0004](adr/0004-server-architecture.md).
 
@@ -104,7 +104,7 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 ### 2.4.11 Focus Not Obscured (Minimum) (AA)
 
 - **Requires:** a control that receives keyboard focus is not entirely hidden by content of the page, such as a sticky header.
-- **Own check, to come with the keyboard checks:** whether the focused element is entirely hidden, by a grid of points over it or by the rectangles of the layers that paint, tabbing forward and backward ([ADR 0007](adr/0007-keyboard-checks.md)).
+- **Own check:** whether the focused element is entirely hidden: no point of a grid of 5 by 5 over its part in the viewport shows it, or the rectangles of positioned layers that paint cover it (for an element that draws nothing, only the layers outside its parent), tabbing forward and backward ([ADR 0007](adr/0007-keyboard-checks.md)).
 - **Manual:** whether the user opened what hides the element, and whether a covering layer is semi-transparent, which does not hide it entirely.
 
 ## Rules for all twelve

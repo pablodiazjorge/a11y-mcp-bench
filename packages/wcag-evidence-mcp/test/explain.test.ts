@@ -56,10 +56,10 @@ describe('explainCriterion', () => {
 
     const notAudited = CRITERIA.filter(({ id }) => explainCriterion(id)?.audited === false);
     expect(notAudited.map(({ id }) => id)).toStrictEqual(result.output.notChecked);
-    expect(result.output.notChecked).toStrictEqual(['2.4.11']);
+    expect(result.output.notChecked).toStrictEqual([]);
   });
 
-  it('says which own check each criterion has, with its rule, all built but that of 2.4.11', () => {
+  it('says which own check each criterion has, with its rule', () => {
     expect(
       CRITERIA.map(({ id }) => [id, explainCriterion(id)?.ownCheck, explainCriterion(id)?.ownRule]),
     ).toStrictEqual([
@@ -72,7 +72,7 @@ describe('explainCriterion', () => {
       ['2.4.3', 'heuristic', 'focus-order'],
       ['2.4.4', 'none', null],
       ['2.4.7', 'check', 'focus-visible'],
-      ['2.4.11', 'not built yet', null],
+      ['2.4.11', 'check', 'focus-not-obscured'],
       ['2.5.8', 'none', null],
       ['4.1.2', 'none', null],
     ]);

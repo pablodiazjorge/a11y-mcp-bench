@@ -73,7 +73,7 @@ describe(
       ]);
       expect([output.findings.length, sizes(output)]).toStrictEqual([
         43,
-        { output: 19_808, finding: 449 },
+        { output: 19_800, finding: 449 },
       ]);
       expect(sizes(output).output).toBeLessThanOrEqual(OUTPUT_CAP);
     });
@@ -83,7 +83,7 @@ describe(
 
       expect([output.findings.length, sizes(output)]).toStrictEqual([
         38,
-        { output: 19_567, finding: 502 },
+        { output: 19_559, finding: 502 },
       ]);
       expect(sizes(output).output).toBeLessThanOrEqual(OUTPUT_CAP);
     });

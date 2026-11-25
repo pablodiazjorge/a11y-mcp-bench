@@ -84,6 +84,8 @@ export const failedChecksSchema = z
 
 // The measurements of the server's own keyboard checks (ADR 0007). Their values are numbers and
 // the server's own names: a changed style is named, never given its value, which can be page text.
+// The one exception is the selector of the layer that hides an element (2.4.11): the audit caps it
+// and puts it under `fromPage`, as it does the selector of a location.
 
 export const focusVisibleSchema = z
   .strictObject({
@@ -184,11 +186,54 @@ export const clickNotReachableSchema = z
     'An element with a listener of a click that Tab reaches neither on it nor around it: the function may need a mouse. In a finding, reached, ancestorReached and descendantReached are all false; they show what was checked',
   );
 
+export const focusNotObscuredSchema = z
+  .strictObject({
+    kind: z
+      .literal('focus-not-obscured')
+      .describe('A measurement of what lies over the focused element (2.4.11)'),
+    directions: z
+      .array(z.enum(['forward', 'backward']))
+      .min(1)
+      .describe(
+        'The directions in which the element was entirely hidden: forward is Tab, backward is Shift+Tab. The numbers below are those of the first one',
+      ),
+    points: z
+      .number()
+      .int()
+      .min(1)
+      .max(25)
+      .describe(
+        "How many points of a grid of 5 by 5 over the element's part in the viewport were read: 25",
+      ),
+    pointsOnElement: z
+      .number()
+      .int()
+      .min(0)
+      .max(25)
+      .describe(
+        'Of those points, how many showed the element, or an element inside it, before any layer that paints; an ancestor stands for the element only when the element has pointer-events: none. Above 0 in a finding when the points passed through the layer, as through one with pointer-events: none, and the rectangles of the layers decided',
+      ),
+    inViewport: z
+      .number()
+      .positive()
+      .max(1)
+      .describe("The fraction of the element's rectangle inside the viewport, above 0 and up to 1"),
+    layer: z
+      .strictObject({ rect: rectSchema, selector: z.string().min(1) })
+      .describe(
+        'The layer that hides the element: the one that paints first at most points or, when the points pass through, the positioned layer whose rectangle covers most of the element among those that cover it together',
+      ),
+  })
+  .describe(
+    'An element that has keyboard focus and is entirely hidden by the page: no point of the grid on it, or the rectangles of positioned layers that paint over all of it',
+  );
+
 export const measurementSchema = z.discriminatedUnion('kind', [
   contrastSchema,
   targetSizeSchema,
   failedChecksSchema,
   focusVisibleSchema,
+  focusNotObscuredSchema,
   keyboardTrapSchema,
   focusOrderSchema,
   clickNotReachableSchema,

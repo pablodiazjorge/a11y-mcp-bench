@@ -256,7 +256,8 @@ try {
     located: ${JSON.stringify(keys)}.map((key) => {
       const element = registry.get(key);
       if (!element || !element.isConnected || element.ownerDocument !== document) return null;
-      const target = engine.utils.getShadowSelector(engine.utils.getSelector, element);
+      // getSelector itself steps into shadow roots, giving one selector per root.
+      const target = engine.utils.getSelector(element);
       const box = element.getBoundingClientRect();
       return {
         target: [target].flat(Infinity).map(String),

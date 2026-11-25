@@ -1,9 +1,11 @@
 // The parts of the keyboard walk of ADR 0007 that decide from what it read: the cycles of 2.1.2,
-// the jumps back of 2.4.3, the styles and pixels of 2.4.7, and the selectors without focus classes.
+// the jumps back of 2.4.3, the styles and pixels of 2.4.7, what hides an element for 2.4.11, and the
+// selectors without focus classes.
 
 import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
-import type { Box, Frame } from '../src/core/browser.ts';
+import type { Box, Coverage, Frame } from '../src/core/browser.ts';
+import { coverVerdict } from '../src/core/focus-cover.ts';
 import { changedPixels } from '../src/core/focus-pixels.ts';
 import {
   backJump,
@@ -155,5 +157,77 @@ describe('changedPixels', () => {
         height: 5,
       }),
     ).toBeNull();
+  });
+});
+
+describe('coverVerdict', () => {
+  const element = { x: 100, y: 100, width: 40, height: 20 };
+  const coverage = (over: Partial<Coverage> = {}): Coverage => ({
+    box: element,
+    viewport: { width: 400, height: 300 },
+    points: Array<null>(25).fill(null),
+    draws: true,
+    layers: [],
+    ...over,
+  });
+
+  it('sees an element that every point shows, with no layer over it, as not hidden', () => {
+    expect(coverVerdict(coverage())).toStrictEqual({
+      hidden: false,
+      inViewport: 1,
+      points: 25,
+      pointsOnElement: 25,
+      layer: null,
+    });
+  });
+
+  it('calls an element hidden when no point shows it, naming the layer at most points', () => {
+    const points = [...Array<number>(15).fill(7), ...Array<number>(10).fill(8)];
+
+    expect(coverVerdict(coverage({ points }))).toMatchObject({
+      hidden: true,
+      pointsOnElement: 0,
+      layer: 7,
+    });
+  });
+
+  it('calls an element hidden when the rectangles of the layers cover all of it, together', () => {
+    const top = { key: 3, box: { x: 90, y: 90, width: 60, height: 15 }, inParent: false };
+    const bottom = { key: 4, box: { x: 90, y: 105, width: 60, height: 30 }, inParent: false };
+
+    expect(coverVerdict(coverage({ layers: [top] }))).toMatchObject({ hidden: false });
+    // The bottom layer covers 15 of the 20 pixels of height: most of the cells.
+    expect(coverVerdict(coverage({ layers: [top, bottom] }))).toMatchObject({
+      hidden: true,
+      pointsOnElement: 25,
+      layer: 4,
+    });
+  });
+
+  it('leaves out the layers inside the parent of an element that draws nothing, as a native input of Material', () => {
+    const over = { key: 3, box: { x: 90, y: 90, width: 60, height: 40 }, inParent: true };
+
+    expect(coverVerdict(coverage({ draws: false, layers: [over] }))).toMatchObject({
+      hidden: false,
+    });
+    // A layer of the page, such as a header with pointer-events: none, still covers it.
+    expect(
+      coverVerdict(coverage({ draws: false, layers: [{ ...over, inParent: false }] })),
+    ).toMatchObject({ hidden: true, layer: 3 });
+    // The layers inside its parent count for an element that draws.
+    expect(coverVerdict(coverage({ layers: [over] }))).toMatchObject({ hidden: true, layer: 3 });
+    expect(
+      coverVerdict(coverage({ draws: false, points: Array<number>(25).fill(3) })),
+    ).toMatchObject({ hidden: true, layer: 3 });
+  });
+
+  it('gives no verdict for an element with no part in the viewport or no area: 2.4.7 sees it', () => {
+    expect(coverVerdict(coverage({ box: { ...element, x: -500 }, points: [] }))).toBeNull();
+    expect(coverVerdict(coverage({ box: { ...element, height: 0 } }))).toBeNull();
+  });
+
+  it('gives the part in the viewport, rounded to hundredths and never to 0', () => {
+    expect(coverVerdict(coverage({ box: { ...element, y: 290 } }))?.inViewport).toBe(0.5);
+    expect(coverVerdict(coverage({ box: { ...element, y: 299.9 } }))?.inViewport).toBe(0.01);
   });
 });

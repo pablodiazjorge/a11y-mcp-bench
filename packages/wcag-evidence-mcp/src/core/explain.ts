@@ -36,7 +36,7 @@ export const explanationSchema = z.strictObject({
       'axe-core rules that audit_route runs for the criterion but that only mark an element for review, which audit_route does not report: what they look for is left for a person',
     ),
   ownCheck: z
-    .enum(['none', 'check', 'heuristic', 'not built yet', 'heuristic, not built yet'])
+    .enum(['none', 'check', 'heuristic'])
     .describe(
       "The server's own check of the criterion, beyond axe-core: a check, or a heuristic, which gives candidates, some of them wrong, that a person confirms. The keyboard checks walk the page with Tab and Shift+Tab, and never activate anything",
     ),
@@ -44,27 +44,24 @@ export const explanationSchema = z.strictObject({
     .string()
     .nullable()
     .describe(
-      "The rule that names the findings of the server's own check, or null when none is built",
+      "The rule that names the findings of the server's own check, or null when the criterion has none",
     ),
   class: z
     .enum(['automatic', 'semi-automatic'])
     .describe(
-      'The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings',
+      'The class of the criterion. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings',
     ),
   manual: z
     .string()
-    .describe(
-      "What is left for a person to check once all of the server's checks for the criterion are built. While ownCheck says not built yet, a person also checks what that check would",
-    ),
+    .describe("What is left for a person to check beyond the server's checks for the criterion"),
 });
 
 export type Explanation = z.infer<typeof explanationSchema>;
 
-/** The server's own check of a criterion, by how the catalog decides it and whether it is built. */
-function ownCheckOf(decidedBy: Criterion['decidedBy'], built: boolean): Explanation['ownCheck'] {
+/** The server's own check of a criterion, by how the catalog decides it. */
+function ownCheckOf(decidedBy: Criterion['decidedBy']): Explanation['ownCheck'] {
   if (decidedBy === 'axe-core') return 'none';
-  if (decidedBy === 'own-check') return built ? 'check' : 'not built yet';
-  return built ? 'heuristic' : 'heuristic, not built yet';
+  return decidedBy === 'own-check' ? 'check' : 'heuristic';
 }
 
 /** The explanation of criterion `id`, or `undefined` when it is not one of the twelve. */
@@ -84,7 +81,7 @@ export function explainCriterion(id: string): Explanation | undefined {
     audited: rules.length > 0 || ownRule !== undefined,
     axeCoreRules: rules.filter(({ reviewOnFail }) => !reviewOnFail).map(({ id: rule }) => rule),
     reviewOnlyRules: rules.filter(({ reviewOnFail }) => reviewOnFail).map(({ id: rule }) => rule),
-    ownCheck: ownCheckOf(criterion.decidedBy, ownRule !== undefined),
+    ownCheck: ownCheckOf(criterion.decidedBy),
     ownRule: ownRule ?? null,
     class: criterion.class,
     manual: criterion.manual,

@@ -13,7 +13,7 @@ const inputSchema = z.object({
 });
 
 const DESCRIPTION = [
-  'Explains one of the twelve WCAG 2.2 criteria that audit_route covers: what it requires, how this server checks it (the axe-core rules that it runs, its own check, or no check yet) and what is left for a person to check.',
+  'Explains one of the twelve WCAG 2.2 criteria that audit_route covers: what it requires, how this server checks it (the axe-core rules that it runs, and its own check where it has one) and what is left for a person to check.',
   'It reads the catalog that ships with the server and opens no page.',
   'The same explanation is the resource criterion://<number>, which the definitions of an audit link to.',
 ].join(' ');

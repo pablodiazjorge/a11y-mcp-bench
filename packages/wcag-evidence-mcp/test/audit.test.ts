@@ -190,10 +190,9 @@ describe('auditRoute', () => {
     expect(result.output.notChecked).toStrictEqual([]);
   });
 
-  it('says which criteria asked for no check covers', async () => {
-    expect((await audit([])).notChecked).toStrictEqual(['2.4.11']);
-    expect((await audit([], ['2.4.11', '1.1.1'])).notChecked).toStrictEqual(['2.4.11']);
-    expect((await audit([], ['2.4.7', '1.1.1'])).notChecked).toStrictEqual([]);
+  it('lists no criterion in notChecked when the walk saw the whole page: each of the twelve has a check', async () => {
+    expect((await audit([])).notChecked).toStrictEqual([]);
+    expect((await audit([], ['2.4.11', '1.1.1'])).notChecked).toStrictEqual([]);
   });
 
   it.each<[string, (use: (page: LoadedPage) => Promise<unknown>) => Promise<unknown>]>([

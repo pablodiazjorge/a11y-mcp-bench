@@ -1,0 +1,27 @@
+<!doctype html>
+<!--
+  A target of a click that the page makes tabbable once focus first leaves the page, after the last
+  element (ADR 0007). Tab does not reach it; Shift+Tab does, so 2.1.1 sees it reached only because
+  the walk goes both ways, whatever criterion is asked for.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Revealed going back</title>
+  </head>
+  <body>
+    <main>
+      <button id="a">A</button>
+      <button id="b">B</button>
+      <div id="late" style="width: 40px; height: 20px; background: #9c9">Late</div>
+    </main>
+    <script>
+      const late = document.getElementById('late');
+      late.addEventListener('click', () => undefined);
+      let left = 0;
+      addEventListener('focusout', (event) => {
+        if (event.relatedTarget === null && ++left === 1) setTimeout(() => (late.tabIndex = 0), 0);
+      });
+    </script>
+  </body>
+</html>

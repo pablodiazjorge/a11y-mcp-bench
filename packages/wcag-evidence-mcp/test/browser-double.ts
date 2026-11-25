@@ -32,6 +32,7 @@ export function emptyKeyboard(): KeyboardDriver {
     capture: () => Promise.resolve({ width: 1, height: 1, data: new Uint8Array(4) }),
     styles: () => Promise.resolve({}),
     clickTargets: () => Promise.resolve([]),
+    coverage: () => Promise.resolve(null),
   };
 }
 

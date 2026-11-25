@@ -1,7 +1,7 @@
-// The keyboard walk of ADR 0007 and the checks that it feeds: 2.4.7 by pixels, and the heuristics
-// of 2.1.2 (a trap), 2.4.3 (a jump back) and 2.1.1 (a click that Tab does not reach). The browser
-// presses the keys and reads the page through the keyboard driver; everything decided here works
-// on what it read. 2.4.11 is not built yet.
+// The keyboard walk of ADR 0007 and the checks that it feeds: 2.4.7 by pixels, 2.4.11 by what lies
+// over the focused element, and the heuristics of 2.1.2 (a trap), 2.4.3 (a jump back) and 2.1.1 (a
+// click that Tab does not reach). The browser presses the keys and reads the page through the
+// keyboard driver; everything decided here works on what it read.
 
 import type {
   Box,
@@ -15,6 +15,7 @@ import type {
 } from './browser.ts';
 import { STYLE_PROPERTIES } from './browser.ts';
 import type { ElementKey } from './element-key.ts';
+import { coverVerdict, type CoverVerdict } from './focus-cover.ts';
 import { CHANGE_THRESHOLD, FOCUS_MARGIN, changedPixels } from './focus-pixels.ts';
 import type { ElementLocation, EngineFinding, Measurement, RuleEngine } from './rule-engine.ts';
 
@@ -27,6 +28,7 @@ export const KEYBOARD_RULES = {
   'keyboard-trap': '2.1.2',
   'focus-order': '2.4.3',
   'focus-visible': '2.4.7',
+  'focus-not-obscured': '2.4.11',
 } as const;
 export type KeyboardRule = keyof typeof KEYBOARD_RULES;
 
@@ -37,8 +39,9 @@ export interface WalkResult {
   readonly findings: readonly EngineFinding[];
   /**
    * The criteria asked for that the walk could not check, for the audit's `notChecked`: all of them
-   * when a direction reached its cap; all but 2.1.2 when the walk ended in a cycle, since the
-   * elements after it were never reached; 2.4.7 when an element could not be compared.
+   * when Tab reached its cap; all but 2.1.2 when Tab ended in a trap, since the elements after it
+   * were never reached; 2.1.2 and 2.4.11 when Shift+Tab reached its cap, and 2.4.11 when it ended
+   * in a trap; 2.4.7 when an element could not be compared.
    */
   readonly notChecked: readonly string[];
 }
@@ -81,6 +84,14 @@ interface Trap {
   readonly members: readonly ElementKey[];
   readonly direction: 'forward' | 'backward';
   readonly keys: readonly WalkKey[];
+}
+
+/** An element entirely hidden while it had focus (2.4.11). */
+interface Hidden {
+  readonly directions: ('forward' | 'backward')[];
+  /** The verdict of the first direction in which it was hidden. */
+  readonly verdict: CoverVerdict;
+  readonly layer: ElementLocation;
 }
 
 interface Jump {
@@ -190,6 +201,9 @@ export async function walkKeyboard(
   const cycles: { members: Set<ElementKey>; head: ElementKey | undefined }[] = [];
   // The elements in the order that Tab first reached them, for the inversions of 2.4.3.
   const tabOrder: Reached[] = [];
+  const hidden = new Map<ElementKey, Hidden>();
+  // The elements read for 2.4.11, by direction: once each, at the first stop on them.
+  const covered = new Set<string>();
   const unseen = new Set<string>();
 
   const tabbables = await keyboard.tabbables();
@@ -205,6 +219,8 @@ export async function walkKeyboard(
   let previous: Reached | null = null;
   // The element at the previous stop of the forward walk, for a jump back; none after the body.
   let before: Reached | null = null;
+  // Whether the walk has pressed Escape: from then on, the page at load is no reference for 2.4.7.
+  let escaped = false;
 
   async function stopAt(stop: FocusStop, direction: 'forward' | 'backward'): Promise<void> {
     const frame = direction === 'forward' && loadFrame !== null ? await keyboard.capture() : null;
@@ -248,6 +264,9 @@ export async function walkKeyboard(
         compareWithLoad(here, frame);
       }
     }
+    if (here !== undefined && !here.inFrame && wants('focus-not-obscured')) {
+      await cover(here, direction);
+    }
     if (direction === 'forward' && wants('focus-order')) {
       if (here !== undefined && before !== null && !here.inFrame && !before.inFrame) {
         const jump = backJump(pageBox(before), pageBox(here));
@@ -259,9 +278,36 @@ export async function walkKeyboard(
     previous = isNew ? (here ?? null) : null;
   }
 
+  async function cover(element: Reached, direction: 'forward' | 'backward'): Promise<void> {
+    const once = `${direction}|${String(element.key)}`;
+    if (covered.has(once)) return;
+    covered.add(once);
+    const coverage = await keyboard.coverage(element.key);
+    const verdict = coverage === null ? null : coverVerdict(coverage);
+    if (!verdict?.hidden || verdict.layer === null) return;
+    const known = hidden.get(element.key);
+    if (known !== undefined) {
+      known.directions.push(direction);
+      return;
+    }
+    // Located now, before the next key moves the page: the place of a fixed layer in the page
+    // changes with the scroll, and it is reported where it hid the element.
+    // A layer that is no longer in the page by then gives no finding: every finding names its layer.
+    const located = (await engine.locate(page, [verdict.layer]))[0] ?? null;
+    if (located === null) return;
+    hidden.set(element.key, {
+      directions: [direction],
+      verdict,
+      layer: withoutFocusClasses(located),
+    });
+  }
+
   function compareWithLoad(element: Reached, frame: Frame): void {
     const loadBox = atLoadBoxes.get(element.key);
-    if (loadFrame === null || atLoad.key === element.key || loadBox === undefined) return;
+    // After an Escape, the page may no longer look as it loaded, as when it closed a dialog and its
+    // backdrop: the element is compared with the page once focus leaves it.
+    if (loadFrame === null || escaped || atLoad.key === element.key || loadBox === undefined)
+      return;
     const inside =
       loadBox.x >= 0 &&
       loadBox.y >= 0 &&
@@ -295,7 +341,7 @@ export async function walkKeyboard(
     element.frame = null;
   }
 
-  /** How a direction ended: back at its first stop, in a cycle, or at the cap. */
+  /** How a direction ended: back at its first stop, in a cycle that Escape did not break, or at the cap. */
   async function walk(direction: 'forward' | 'backward'): Promise<'end' | 'cycle' | 'cap'> {
     const key: WalkKey = direction === 'forward' ? 'Tab' : 'Shift+Tab';
     const stops: (ElementKey | null)[] = [];
@@ -325,12 +371,12 @@ export async function walkKeyboard(
         .filter((element): element is Reached => element !== undefined && !element.inFrame)
         .sort((a, b) => readingOrder(pageBox(a), pageBox(b)))[0]?.key;
       cycles.push({ members: new Set(cycle), head });
-      if (!wants('keyboard-trap')) return 'cycle';
       // A page that traps again and again would keep the walk going: past one cycle per element,
       // it ends as at the cap.
       if (escapes > tabbables.length) return 'cap';
       // One Escape inside each cycle, then another try to leave it with the same key and cap.
       escapes += 1;
+      escaped = true;
       await keyboard.press('Escape');
       await stopAt(await keyboard.focused(), direction);
       const members = new Set(cycle);
@@ -346,7 +392,10 @@ export async function walkKeyboard(
         traps.push({ members: cycle, direction, keys: [key, 'Escape', key] });
         return 'cycle';
       }
+      // The direction starts again from where it left the cycle: Escape may have removed the first
+      // stop, as a dialog that it closed, and the walk could not end by coming back to it.
       from = stops.length - 1;
+      first = stops[from] === null ? null : from;
       presses = 0;
     }
     // At the cap: a page where Tab reaches nothing is seen whole; any other is not.
@@ -370,11 +419,14 @@ export async function walkKeyboard(
     for (const id of asked)
       if (forward === 'cap' || id !== KEYBOARD_RULES['keyboard-trap']) unseen.add(id);
   }
-  // Shift+Tab serves only 2.1.2 until 2.4.11, which needs both directions, is built.
-  if (wants('keyboard-trap')) {
-    if ((await walk('backward')) === 'cap') unseen.add(KEYBOARD_RULES['keyboard-trap']);
-    await finish('backward');
-  }
+  // Both directions, whatever criteria are asked for (ADR 0007), so that each criterion sees the
+  // same walk: Shift+Tab can reach an element that Tab did not, and a fixed header hides elements
+  // only when Tab goes back (F110).
+  const backward = await walk('backward');
+  if (backward === 'cap') unseen.add(KEYBOARD_RULES['keyboard-trap']);
+  // Past a trap, the elements before it are never reached going back.
+  if (backward !== 'end') unseen.add(KEYBOARD_RULES['focus-not-obscured']);
+  await finish('backward');
 
   const findings: EngineFinding[] = [];
   const locationOf = (element: Reached | undefined): ElementLocation | null => {
@@ -412,7 +464,18 @@ export async function walkKeyboard(
     }
   }
 
-  for (const trap of mergedTraps(traps)) {
+  for (const [key, { directions, verdict, layer }] of hidden) {
+    add('focus-not-obscured', locationOf(reached.get(key)), {
+      kind: 'focus-not-obscured',
+      directions: [...directions],
+      points: verdict.points,
+      pointsOnElement: verdict.pointsOnElement,
+      inViewport: verdict.inViewport,
+      layer: { rect: layer.rect, selector: layer.selector },
+    });
+  }
+
+  for (const trap of wants('keyboard-trap') ? mergedTraps(traps) : []) {
     const locations = trap.members
       .map((member) => locationOf(reached.get(member)))
       .filter((location) => location !== null)

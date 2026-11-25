@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAxeRuleEngine } from '../src/adapters/axe/rule-engine.ts';
 import { createPlaywrightBrowser } from '../src/adapters/playwright/browser.ts';
-import { auditRoute, type AuditOutput, type AuditPorts } from '../src/core/audit.ts';
+import { auditRoute, CRITERION_IDS, type AuditOutput, type AuditPorts } from '../src/core/audit.ts';
 import type { BrowserPort } from '../src/core/browser.ts';
 import { startSite, type LocalSite } from './local-site.ts';
 
@@ -29,6 +29,10 @@ beforeAll(async () => {
     'clicks.html',
     'material.html',
     'frames.html',
+    'obscured.html',
+    'backdrop.html',
+    'material-field.html',
+    'reveal.html',
   ]) {
     site.page(`/${name}`, fixture(name));
   }
@@ -311,6 +315,190 @@ describe('2.4.3 Focus Order', { timeout: TIMEOUT_MS }, () => {
     const output = await audited(`/order.html?case=${kind}`, ['2.4.3']);
 
     expect(selectors(output, 'focus-order')).toStrictEqual(jumps);
+  });
+});
+
+// The cases of the trial of ADR 0007 give the same elements here; each walk takes a few seconds, so
+// they run at once, each in a context of its own.
+describe.concurrent('2.4.11 Focus Not Obscured (Minimum)', { timeout: TIMEOUT_MS }, () => {
+  type Obscured = Extract<
+    AuditOutput['findings'][number]['measurement'],
+    { kind: 'focus-not-obscured' }
+  >;
+  /** The findings of 2.4.11: the element, the directions and the covering layer's selector. */
+  const hidden = (output: AuditOutput): [string, string, string | null][] =>
+    output.findings.flatMap(({ location, measurement }) =>
+      measurement.kind === 'focus-not-obscured'
+        ? [
+            [
+              location.fromPage.selector,
+              measurement.directions.join(' '),
+              measurement.layer?.fromPage.selector ?? null,
+            ],
+          ]
+        : [],
+    );
+  const measurementOf = (output: AuditOutput, selector: string): Obscured | undefined =>
+    output.findings
+      .filter(({ location }) => location.fromPage.selector === selector)
+      .map(({ measurement }) => measurement)
+      .find((measurement): measurement is Obscured => measurement.kind === 'focus-not-obscured');
+  const links = (numbers: number[], directions: string, layer: string) =>
+    numbers.map((number): [string, string, string] => [`#l${String(number)}`, directions, layer]);
+
+  it.each([
+    ['fixed-header', 'header'],
+    ['sticky', 'header'],
+  ])('reports the links that a %s hides when Shift+Tab goes back', async (kind, layer) => {
+    const output = await audited(`/obscured.html?case=${kind}`, ['2.4.11']);
+
+    expect(output.notChecked).toStrictEqual([]);
+    expect(hidden(output)).toStrictEqual(links([6, 7, 18, 19, 20], 'backward', layer));
+  });
+
+  it('reports the links that a fixed footer hides when Tab goes forward, with its rectangle then', async () => {
+    const output = await audited('/obscured.html?case=fixed-footer', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual([
+      ...links([21, 22, 23, 34, 35], 'forward', 'footer'),
+      ...links([39, 40], 'forward backward', 'footer'),
+    ]);
+    // The footer is fixed: where it is in the page depends on the scroll, read while it hid the link.
+    for (const { location, measurement } of output.findings) {
+      if (measurement.kind !== 'focus-not-obscured' || measurement.layer === null) continue;
+      const { rect } = measurement.layer;
+      expect(rect.y).toBeLessThanOrEqual(location.rect.y);
+      expect(rect.y + rect.height).toBeGreaterThanOrEqual(location.rect.y + location.rect.height);
+    }
+  });
+
+  it('reports the links under a cookie banner, once for those hidden in both directions', async () => {
+    const output = await audited('/obscured.html?case=banner', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual([
+      ...links([21, 22, 23, 33, 34, 35], 'forward', '#cookies'),
+      ...links([38, 39, 40], 'forward backward', '#cookies'),
+    ]);
+  });
+
+  it('reports a layer that paints, semi-transparent or passed through by the points, and no other', async () => {
+    const output = await audited('/obscured.html?case=layers', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual(
+      ['full', 'through', 'semi', 'faded'].map((id) => [`#${id}`, 'forward backward', `#c-${id}`]),
+    );
+    expect(measurementOf(output, '#full')).toMatchObject({ points: 25, pointsOnElement: 0 });
+    // The points pass through a layer with pointer-events: none; its rectangle decides.
+    expect(measurementOf(output, '#through')).toMatchObject({ points: 25, pointsOnElement: 25 });
+  });
+
+  it('gives no verdict for a link that stays off screen, a skip link that shows or an element with no area', async () => {
+    const output = await audited('/obscured.html?case=edges', ['2.4.11']);
+
+    // A button with pointer-events: none is not hidden by its parent, but is by an opaque layer.
+    expect(hidden(output)).toStrictEqual([['#pass-covered', 'forward backward', '.cover']]);
+  });
+
+  it('sees a layer drawn in a shadow root, and gives no finding in a frame', async () => {
+    const output = await audited('/obscured.html?case=shadow', ['2.4.11']);
+
+    // The link in the shadow root and the button in the frame both sit under the bar.
+    expect(hidden(output)).toStrictEqual([
+      ['#box >>> #inside', 'forward', '#bar >>> .bar'],
+      ...links([21, 31, 32, 33], 'forward', '#bar >>> .bar'),
+      ...links([38, 39, 40], 'forward backward', '#bar >>> .bar'),
+    ]);
+  });
+
+  it('sees an input that draws nothing under a header that the points pass through, as the button beside it', async () => {
+    const output = await audited('/obscured.html?case=native', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual(
+      ['#native', '#plain'].map((id) => [id, 'forward backward', '#see-through']),
+    );
+  });
+
+  it('sees a button behind the background of its own parent', async () => {
+    const output = await audited('/obscured.html?case=behind', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual([['#under', 'forward backward', '#wrap']]);
+  });
+
+  it('sees the checkboxes of Material that a fixed header hides, whose inputs draw nothing', async () => {
+    const output = await audited('/obscured.html?case=checkboxes', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual(
+      ['#c4', '#c11', '#c18', '#c19'].map((id) => [id, 'backward', 'header']),
+    );
+  });
+
+  it('gives nothing on an outlined field of Material with a value: the pieces of its outline are not positioned', async () => {
+    const output = await audited('/material-field.html', ['2.4.11']);
+
+    expect(output.notChecked).toStrictEqual([]);
+    expect(hidden(output)).toStrictEqual([]);
+  });
+
+  it("sees the overlay of the CDK, and not the focus layer of Material's checkbox", async () => {
+    const output = await audited('/obscured.html?case=material', ['2.4.11']);
+
+    expect(hidden(output)).toStrictEqual([
+      ...links([19, 20, 21, 31, 32, 33], 'forward', '.notice'),
+      ...links([39, 40], 'forward backward', '.notice'),
+    ]);
+  });
+
+  it('presses Escape in a cycle without 2.1.2 too, and cannot check 2.4.11 past one that it does not break', async () => {
+    expect((await audited('/traps.html?case=escape', ['2.4.11'])).notChecked).toStrictEqual([]);
+    expect((await audited('/traps.html?case=loop', ['2.4.11'])).notChecked).toStrictEqual([
+      '2.4.11',
+    ]);
+  });
+});
+
+describe('a dialog open at load, which Escape closes', { timeout: TIMEOUT_MS }, () => {
+  it('compares the buttons behind it with the page once focus leaves them, not with the page at load', async () => {
+    const output = await audited('/backdrop.html', ['2.1.2', '2.4.7']);
+
+    expect(output.notChecked).toStrictEqual([]);
+    expect(selectors(output, 'keyboard-trap')).toStrictEqual([]);
+    expect(
+      output.findings.map(({ location, measurement }) => [
+        location.fromPage.selector,
+        measurement.kind === 'focus-visible' ? measurement.reference : null,
+      ]),
+    ).toStrictEqual(['#p1', '#p2', '#p3', '#p4'].map((selector) => [selector, 'leave']));
+  });
+});
+
+// One keyboard criterion asked alone walks the page as a call of all twelve does, Escape included,
+// so it gives the same findings and the same entry in notChecked. Each page takes six walks.
+describe.concurrent('a keyboard criterion asked alone', { timeout: 4 * TIMEOUT_MS }, () => {
+  it.each([
+    '/focus-visible.html',
+    '/traps.html?case=escape',
+    '/traps.html?case=loop',
+    '/order.html?case=tabindex',
+    '/clicks.html',
+    '/material.html',
+    '/frames.html',
+    '/backdrop.html',
+    '/obscured.html?case=banner',
+    '/material-field.html',
+    '/reveal.html',
+  ])('gives on %s what a call of all twelve gives for it', async (path) => {
+    const all = await audited(path, CRITERION_IDS);
+
+    for (const criterion of ['2.1.1', '2.1.2', '2.4.3', '2.4.7', '2.4.11']) {
+      const alone = await audited(path, [criterion]);
+      const of = (output: AuditOutput) =>
+        output.findings.filter(({ criteria }) => criteria.includes(criterion));
+
+      expect(of(alone), criterion).toStrictEqual(of(all));
+      expect(alone.notChecked.includes(criterion), criterion).toBe(
+        all.notChecked.includes(criterion),
+      );
+    }
   });
 });
 
