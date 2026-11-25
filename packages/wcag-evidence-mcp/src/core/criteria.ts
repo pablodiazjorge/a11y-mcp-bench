@@ -21,13 +21,10 @@ export const criterionSchema = z.object({
    * own that is a heuristic, whose findings say so, or with axe-core rules and such a heuristic.
    */
   decidedBy: z.enum(['axe-core', 'own-check', 'heuristic', 'axe-core-and-heuristic']),
-  /** Whether a person has to confirm the server's findings. `null` until the check is designed. */
-  class: z.enum(['automatic', 'semi-automatic']).nullable(),
-  /**
-   * What is left for a person to check, in one plain sentence. `null` until the check is
-   * designed, as for the class.
-   */
-  manual: z.string().min(1).nullable(),
+  /** Whether a person has to confirm the server's findings. */
+  class: z.enum(['automatic', 'semi-automatic']),
+  /** What is left for a person to check, in one plain sentence. */
+  manual: z.string().min(1),
 });
 
 export type Criterion = z.infer<typeof criterionSchema>;
@@ -147,8 +144,9 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
       'Any part of the page that works with a keyboard shows when it has the keyboard focus.',
     understanding: understanding('focus-visible'),
     decidedBy: 'own-check',
-    class: null,
-    manual: null,
+    class: 'automatic',
+    manual:
+      'An indicator drawn more than 12 px from the element; whether a small change, such as the selected text of a field, is visible enough to count; and an empty field whose only indicator is the text cursor, which the check hides.',
   },
   {
     id: '2.4.11',
@@ -158,8 +156,9 @@ export const CRITERIA: readonly Criterion[] = z.array(criterionSchema).parse([
       'A control that receives keyboard focus is not entirely hidden by content of the page, such as a sticky header.',
     understanding: understanding('focus-not-obscured-minimum'),
     decidedBy: 'own-check',
-    class: null,
-    manual: null,
+    class: 'semi-automatic',
+    manual:
+      'Whether the user opened what hides the element, and whether a covering layer is semi-transparent, which does not hide it entirely.',
   },
   {
     id: '2.5.8',

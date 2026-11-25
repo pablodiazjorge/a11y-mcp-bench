@@ -24,12 +24,11 @@ const DECIDED_BY = new Map<string, Criterion['decidedBy']>([
   ['axe-core rule `target-size`, turned on', 'axe-core'],
   ['Own check, a heuristic', 'heuristic'],
   ['Three axe-core rules, and an own check, a heuristic', 'axe-core-and-heuristic'],
-  ['Own check, set when the keyboard checks are designed', 'own-check'],
+  ['Own check', 'own-check'],
 ]);
 const CLASS = new Map<string, Criterion['class']>([
   ['Automatic', 'automatic'],
   ['Semi-automatic', 'semi-automatic'],
-  ['Not set yet', null],
 ]);
 
 function known<T>(texts: Map<string, T>, text: string): T {
@@ -160,8 +159,8 @@ const valid: Criterion = {
   requires: 'Something.',
   understanding: 'https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html',
   decidedBy: 'own-check',
-  class: null,
-  manual: null,
+  class: 'semi-automatic',
+  manual: 'Something else.',
 };
 
 describe('the criteria catalog', () => {
@@ -195,20 +194,15 @@ describe('the criteria catalog', () => {
     }
   });
 
-  it('says what is left for manual testing as the scope page does, and nothing where the page says nothing', () => {
+  it('says what is left for manual testing as the scope page does', () => {
     const page = sections();
 
     for (const { id, manual } of CRITERIA) {
       const item = labeled(page.get(id) ?? [], /^Manual:$/);
-      const sentence = item === undefined ? null : textOf(item.rest).trim();
-      expect(manual, id).toBe(
-        sentence === null ? null : sentence.charAt(0).toUpperCase() + sentence.slice(1),
-      );
+      expect(item, id).toBeDefined();
+      const sentence = textOf(item?.rest ?? []).trim();
+      expect(manual, id).toBe(sentence.charAt(0).toUpperCase() + sentence.slice(1));
     }
-    expect(CRITERIA.filter(({ manual }) => manual === null).map(({ id }) => id)).toStrictEqual([
-      '2.4.7',
-      '2.4.11',
-    ]);
   });
 
   it('names in what is left for manual testing the rules that only mark for review', () => {
@@ -236,6 +230,8 @@ describe('the criteria catalog', () => {
       { ...valid, class: 'manual' },
       { ...valid, name: '' },
       { ...valid, manual: '' },
+      { ...valid, class: null },
+      { ...valid, manual: null },
     ]) {
       expect(criterionSchema.safeParse(wrong).success).toBe(false);
     }

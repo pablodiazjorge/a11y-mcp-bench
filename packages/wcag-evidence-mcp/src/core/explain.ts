@@ -41,15 +41,13 @@ export const explanationSchema = z.strictObject({
     ),
   class: z
     .enum(['automatic', 'semi-automatic'])
-    .nullable()
     .describe(
-      'The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings. null: set when the keyboard checks are designed',
+      'The class of the criterion once all of its checks are built. automatic: the server decides pass or fail for the part it checks. semi-automatic: a person confirms its findings',
     ),
   manual: z
     .string()
-    .nullable()
     .describe(
-      "What is left for a person to check once all of the server's checks for the criterion are built. While ownCheck says not built yet, a person also checks what that check would. null until the criterion's own check is designed",
+      "What is left for a person to check once all of the server's checks for the criterion are built. While ownCheck says not built yet, a person also checks what that check would",
     ),
 });
 

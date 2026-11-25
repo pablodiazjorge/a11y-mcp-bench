@@ -2,7 +2,7 @@
 
 The repository has six parts, and the dependencies between them run one way. `npm run check:deps` checks the main boundaries as part of the local gate (`npm run ci`). This page shows who takes part in a study, what each part may depend on, how the server is split inside and how that is checked.
 
-The reasons are in six ADRs (architecture decision records):
+The reasons are in seven ADRs (architecture decision records):
 
 - [ADR 0001](adr/0001-scope-and-non-goals.md): what the project measures and what it leaves out.
 - [ADR 0002](adr/0002-methodology.md): how a study is run and graded.
@@ -10,6 +10,7 @@ The reasons are in six ADRs (architecture decision records):
 - [ADR 0004](adr/0004-server-architecture.md): the server's SDK, the parts inside it and what its tools return.
 - [ADR 0005](adr/0005-url-policy.md): which URLs the server may open.
 - [ADR 0006](adr/0006-untrusted-page-text.md): which text from the page reaches the agent, and how.
+- [ADR 0007](adr/0007-keyboard-checks.md): what the keyboard checks measure, how they walk the page and what they cannot see.
 
 ## A study
 
@@ -177,7 +178,7 @@ The output goes beyond the contract of ADR 0004 in nine ways, accepted with the 
 
 - **What it is:** the number, name and level, what it requires, the URI of its resource and its Understanding page.
 - **How the server checks it:** `axeCoreRules`, the rules that `audit_route` runs for it and that can give a finding, chosen as an audit chooses them; `reviewOnlyRules`, those that it runs but that axe-core only marks for review, which an audit does not report (`aria-braille-equivalent`, `duplicate-id-aria` and `frame-title-unique`, all three for 4.1.2), read from `reviewOnFail` in the map of axe-core rules; `ownCheck`, the server's own check, not built yet for any criterion; `audited`, false for the criteria in the `notChecked` of every audit; and its class.
-- **What is left for a person,** `manual`, from the scope page. It is null for 2.4.7 and 2.4.11, like their class, until the keyboard checks are designed.
+- **What is left for a person,** `manual`, from the scope page.
 
 The tool is read-only, idempotent and closed-world (`openWorldHint` false): it reads the catalog that ships with the server and opens no page. Its largest output, for 4.1.2 with 28 rules, takes 1,319 characters, far under the cap of 20,000; a test gives the figure. A criterion outside the twelve fails the input schema, which lists the twelve.
 
