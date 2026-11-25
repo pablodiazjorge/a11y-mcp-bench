@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  The cases of 2.4.3 (ADR 0007), one per value of ?case=: a column and a grid that Tab follows, two
+  columns that it goes down one after the other, and three that send it back: CSS `order`,
+  `row-reverse` and a positive `tabindex`.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Focus order</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main {
+        padding: 16px;
+      }
+      button {
+        width: 140px;
+        height: 32px;
+        font: inherit;
+      }
+      .column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .columns {
+        display: flex;
+        gap: 40px;
+      }
+      .columns > div {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 160px);
+        gap: 8px;
+      }
+      .reverse {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="main"></main>
+    <script>
+      const kind = new URLSearchParams(location.search).get('case') || 'column';
+      const button = (id, extra = '') => '<button id="' + id + '"' + extra + '>' + id + '</button>';
+      const numbers = (count) => Array.from({ length: count }, (_, index) => index + 1);
+      const html = {
+        column:
+          '<div class="column">' +
+          numbers(6)
+            .map((n) => button('b' + n))
+            .join('') +
+          '</div>',
+        columns:
+          '<div class="columns"><div>' +
+          numbers(3)
+            .map((n) => button('L' + n))
+            .join('') +
+          '</div><div>' +
+          numbers(3)
+            .map((n) => button('R' + n))
+            .join('') +
+          '</div></div>',
+        grid:
+          '<div class="grid">' +
+          numbers(6)
+            .map((n) => button('g' + n))
+            .join('') +
+          '</div>',
+        order:
+          '<div class="grid">' +
+          numbers(6)
+            .map((n) =>
+              button('g' + n, n === 1 ? ' style="order: 9"' : n === 6 ? ' style="order: -1"' : ''),
+            )
+            .join('') +
+          '</div>',
+        reverse:
+          '<div class="reverse">' +
+          numbers(4)
+            .map((n) => button('r' + n))
+            .join('') +
+          '</div>',
+        tabindex:
+          '<div class="column">' +
+          button('b1') +
+          button('b2', ' tabindex="2"') +
+          button('b3') +
+          button('b4', ' tabindex="1"') +
+          button('b5') +
+          button('b6') +
+          '</div>',
+      }[kind];
+      document.getElementById('main').innerHTML = html;
+    </script>
+  </body>
+</html>

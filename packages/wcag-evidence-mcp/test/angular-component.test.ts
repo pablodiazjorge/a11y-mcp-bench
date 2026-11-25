@@ -79,6 +79,9 @@ describe('the component of a finding', { timeout: TIMEOUT_MS }, () => {
       'color-contrast | .tooltip-text | app-tooltip - style-attribute',
       // 3: content that app-root projects into app-panel.
       'link-name | a | app-root - style-attribute',
+      // The walk: the empty link and the empty div with a role show no change when Tab reaches them.
+      'focus-visible | a | app-root - style-attribute',
+      'focus-visible | .directive-target | app-root - style-attribute',
       // 2: a child component used three times, whose buttons are also too small.
       `target-size | ${CARD}(3) ${CARD_BUTTON} | app-card - style-attribute`,
       `target-size | ${CARD}(4) ${CARD_BUTTON} | app-card - style-attribute`,

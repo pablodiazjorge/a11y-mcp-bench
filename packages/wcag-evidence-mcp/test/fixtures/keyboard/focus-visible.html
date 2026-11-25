@@ -1,0 +1,155 @@
+<!doctype html>
+<!--
+  The cases of 2.4.7 (ADR 0007): elements that Tab reaches, with and without a focus indicator.
+  Those that the check reports are the ones marked "no indicator" below. A spinner turns for ever,
+  so that the wait for animations has one that never ends.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Focus visible cases</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px/1.2 sans-serif;
+        background: #fff;
+        color: #111;
+      }
+      main {
+        padding: 12px 24px;
+      }
+      .row {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      button,
+      input,
+      a {
+        font: inherit;
+      }
+      button {
+        padding: 4px 10px;
+      }
+      #none:focus {
+        outline: none;
+      }
+      #shadow:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px #1a5fd0;
+      }
+      #background:focus {
+        outline: none;
+        background: #ffe680;
+      }
+      #colour {
+        color: #0645ad;
+        text-decoration: none;
+      }
+      #colour:focus {
+        outline: none;
+        color: #b00020;
+      }
+      #underline {
+        color: #0645ad;
+        text-decoration: none;
+      }
+      #underline:focus {
+        outline: none;
+        text-decoration: underline;
+      }
+      #invisible:focus {
+        outline: 2px solid #ffffff;
+      }
+      .wrapper {
+        padding: 4px;
+        display: inline-flex;
+        gap: 8px;
+      }
+      .wrapper button:focus {
+        outline: none;
+      }
+      .wrapper:focus-within {
+        outline: 2px solid #1a5fd0;
+      }
+      #offset:focus {
+        outline: 2px solid #1a5fd0;
+        outline-offset: 6px;
+      }
+      #after {
+        position: relative;
+      }
+      #after:focus {
+        outline: none;
+      }
+      #after:focus::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -8px;
+        height: 3px;
+        background: #1a5fd0;
+      }
+      #transition {
+        outline: 2px solid transparent;
+        transition: outline-color 200ms linear;
+      }
+      #transition:focus {
+        outline-color: #1a5fd0;
+      }
+      #selected:focus,
+      #caret:focus {
+        outline: none;
+      }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 3px solid #1a5fd0;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spacer {
+        height: 1400px;
+      }
+      #below-none:focus {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="row"><div class="spinner"></div></div>
+      <div class="row"><button id="default">Default outline</button></div>
+      <div class="row"><button id="none">No indicator</button></div>
+      <div class="row"><button id="shadow">Shadow</button></div>
+      <div class="row"><button id="background">Background</button></div>
+      <div class="row"><a id="colour" href="#x">Colour link</a></div>
+      <div class="row"><a id="underline" href="#x">Underline link</a></div>
+      <div class="row"><button id="invisible">No indicator: white outline</button></div>
+      <div class="row">
+        <span class="wrapper"
+          ><button id="inside-a">Inside A</button><button id="inside-b">Inside B</button></span
+        >
+      </div>
+      <div class="row"><button id="offset">Outline away from the box</button></div>
+      <div class="row"><button id="after">Bar below</button></div>
+      <div class="row"><button id="transition">Transition</button></div>
+      <div class="row"><input id="field" type="text" value="text" aria-label="Field" /></div>
+      <div class="row"><input id="selected" type="text" value="text" aria-label="Selected" /></div>
+      <div class="row">
+        <input id="caret" type="text" aria-label="No indicator but the text cursor" />
+      </div>
+      <div class="spacer"></div>
+      <div class="row"><button id="below">Below the fold</button></div>
+      <div class="row"><button id="below-none">No indicator, below the fold</button></div>
+    </main>
+  </body>
+</html>

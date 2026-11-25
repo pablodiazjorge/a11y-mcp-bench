@@ -122,7 +122,7 @@ describe.each<[Era, string]>([
         },
       ],
       definitions: [{ criterion: '1.1.1', name: 'Non-text Content' }],
-      notChecked: ['2.1.2', '2.4.3', '2.4.7', '2.4.11'],
+      notChecked: ['2.4.11'],
       truncated: false,
       leftOut: [],
     });
@@ -204,7 +204,7 @@ describe('audit_route', () => {
       page: { status: 200, refusedRequests: 0, settled: true },
       findings: [],
       definitions: [],
-      notChecked: ['2.4.7'],
+      notChecked: [],
       truncated: false,
       leftOut: [],
     });
@@ -228,6 +228,7 @@ describe('audit_route', () => {
       ruleEngine: {
         name: 'broken 1.0.0',
         run: () => Promise.reject(new Error('the page replaced the engine')),
+        locate: () => Promise.resolve([]),
       },
     });
     sessions.push(session);

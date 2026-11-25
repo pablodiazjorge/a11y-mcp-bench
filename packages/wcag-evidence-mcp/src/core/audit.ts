@@ -1,17 +1,24 @@
-// The `audit_route` use case: open one local page, run the rules of the twelve criteria on it and
-// shape what failed into the output contract of ADR 0004.
+// The `audit_route` use case: open one local page, run the rules of the twelve criteria on it, walk
+// it with the keyboard when a keyboard criterion is asked for (ADR 0007), and shape what failed into
+// the output contract of ADR 0004.
 
 import * as z from 'zod';
 import { AXE_RULE_MAP, type AxeRule } from './axe-rules.ts';
 import type { BrowserPort, VisitFailure } from './browser.ts';
+import type { Log } from './log.ts';
 import { CRITERIA, criterionIdSchema, criterionResource } from './criteria.ts';
 import { findingIds, routeOf } from './finding-id.ts';
+import { KEYBOARD_CRITERIA, KEYBOARD_RULES, walkKeyboard, type WalkResult } from './keyboard.ts';
 import { NAME_RULES } from './name-rules.ts';
 import { openingTag, pageName, pageSelector } from './page-text.ts';
 import {
+  clickNotReachableSchema,
   componentSchema,
   contrastSchema,
   failedChecksSchema,
+  focusOrderSchema,
+  focusVisibleSchema,
+  keyboardTrapSchema,
   rectSchema,
   targetSizeSchema,
   type Component,
@@ -68,6 +75,10 @@ const measuredSchema = z.discriminatedUnion('kind', [
         `Only in the findings of rules whose defect is the name or the text alternative, such as button-name or image-alt. ${FROM_PAGE}`,
       ),
   }),
+  focusVisibleSchema,
+  keyboardTrapSchema,
+  focusOrderSchema,
+  clickNotReachableSchema,
 ]);
 
 // The descriptions below are what the agent reads of the output: it sees the JSON schema, not
@@ -81,7 +92,9 @@ const findingSchema = z.strictObject({
   criteria: z
     .array(criterionIdSchema)
     .describe('The criteria of the twelve that the rule checks, defined in definitions'),
-  rule: ruleIdSchema.describe('The axe-core rule that the element fails'),
+  rule: ruleIdSchema.describe(
+    'The axe-core rule that the element fails, or a keyboard check of the server: focus-visible (2.4.7), keyboard-trap (2.1.2), focus-order (2.4.3) or click-not-reachable (2.1.1)',
+  ),
   measurement: measuredSchema.describe('What the rule measured on the element'),
   location: z
     .strictObject({
@@ -155,13 +168,13 @@ export const auditOutputSchema = z.strictObject({
   notChecked: z
     .array(criterionIdSchema)
     .describe(
-      'Criteria asked for that no rule checks yet: their own checks are not built, so the audit says nothing about them',
+      'Criteria asked for that this call could not check fully, so any findings for them are partial: 2.4.11, whose own check is not built; the keyboard criteria when the walk failed or reached its cap; all of them but 2.1.2 when it ended in a trap; 2.4.7 when an element could not be compared. Elements inside a frame are not checked and are not listed here',
     ),
   truncated: z.boolean().describe('Whether findings were left out to keep the output small'),
   leftOut: z
     .array(
       z.strictObject({
-        rule: ruleIdSchema.describe('The axe-core rule whose findings were left out'),
+        rule: ruleIdSchema.describe('The rule whose findings were left out'),
         criteria: z.array(criterionIdSchema).describe('The criteria to ask for to see them'),
         findings: z.number().int().positive().describe('How many of its findings were left out'),
       }),
@@ -190,6 +203,8 @@ export type AuditResult =
 export interface AuditPorts {
   readonly browser: BrowserPort;
   readonly engine: RuleEngine;
+  /** Where a walk that failed is told, so that a bug in it does not pass for a page not checked. */
+  readonly log?: Log;
 }
 
 /**
@@ -203,6 +218,9 @@ export async function auditRoute(
 ): Promise<AuditResult> {
   const scope = request.criteria ?? CRITERION_IDS;
   const rules = auditedRules().filter((rule) => rule.criteria.some((id) => scope.includes(id)));
+  const keyboardCriteria = KEYBOARD_CRITERIA.filter((id) => scope.includes(id));
+  // The time limit of a visit holds for the whole call: the walk gets what axe-core left of it.
+  const started = Date.now();
   const visit = await ports.browser.visit(request.url, async (page) => {
     const found = await ports.engine.run(
       page,
@@ -217,18 +235,61 @@ export async function auditRoute(
     return { found, page: seen };
   });
   if (!visit.ok) return { ok: false, failure: visit.failure };
+  const keyboard = await walked(ports, request.url, keyboardCriteria, started);
 
-  const checked = new Set(rules.flatMap(({ criteria }) => criteria));
-  const notChecked = CRITERION_IDS.filter((id) => scope.includes(id) && !checked.has(id));
-  const findings = shape(routeOf(request.url), rules, visit.value.found);
+  // A keyboard criterion that the walk could not check is not checked, 2.1.1 included, although
+  // three rules of axe-core check part of it.
+  const checked = new Set([...rules.flatMap(({ criteria }) => criteria), ...keyboardCriteria]);
+  const unseen = keyboard.notChecked;
+  const notChecked = CRITERION_IDS.filter(
+    (id) => scope.includes(id) && (!checked.has(id) || unseen.includes(id)),
+  );
+  const keyboardRules = Object.entries(KEYBOARD_RULES).map(([id, criterion]) => ({
+    id,
+    criteria: [criterion],
+  }));
+  const findings = shape(
+    routeOf(request.url),
+    [...rules, ...keyboardRules],
+    [...visit.value.found, ...keyboard.findings],
+  );
   const context = { page: visit.value.page, notChecked };
   return { ok: true, output: auditOutputSchema.parse(fit(findings, context, cap)) };
+}
+
+/**
+ * The keyboard walk, in a visit of its own after that of axe-core, so that what the keys change
+ * does not reach axe-core (ADR 0007). A walk that fails leaves the audit as it is, with the keyboard
+ * criteria not checked.
+ */
+async function walked(
+  ports: AuditPorts,
+  url: string,
+  criteria: readonly string[],
+  started: number,
+): Promise<WalkResult> {
+  if (criteria.length === 0) return { findings: [], notChecked: [] };
+  try {
+    const visit = await ports.browser.visit(
+      url,
+      (page) => walkKeyboard(page, ports.engine, criteria),
+      started,
+    );
+    if (visit.ok) return visit.value;
+    ports.log?.(`the keyboard walk did not open the page: ${visit.failure.reason}`);
+  } catch (error) {
+    // The walk read something it could not use, such as a page that changed under it, or has a bug.
+    const kind = error instanceof Error ? error.name : typeof error;
+    const message = error instanceof Error ? error.message : String(error);
+    ports.log?.(`the keyboard walk failed: ${kind}: ${message.split('\n')[0] ?? ''}`);
+  }
+  return { findings: [], notChecked: criteria };
 }
 
 /** The findings, with their criteria and identifiers, in the order of the contract. */
 function shape(
   route: string,
-  rules: readonly AxeRule[],
+  rules: readonly Pick<AxeRule, 'id' | 'criteria'>[],
   found: readonly EngineFinding[],
 ): Finding[] {
   const byId = new Map(rules.map((rule) => [rule.id, rule]));

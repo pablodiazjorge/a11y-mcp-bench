@@ -1,0 +1,161 @@
+<!doctype html>
+<!--
+  Angular Material's markup for a tab group whose tabs overflow, a slide toggle and a checkbox, as a
+  build of Angular Material 22.2.7 draws them, without its scripts and styles. The listeners are
+  those that Material puts on these elements, with the same events. For 2.1.1, the tabs that Tab
+  does not reach and the label of the toggle are left out (ADR 0007); the two arrows of the tab
+  header are not, and the check reports them.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Material controls</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main > * {
+        margin: 8px 16px;
+      }
+      mat-tab-header {
+        display: flex;
+        align-items: center;
+      }
+      .mat-mdc-tab-header-pagination {
+        display: inline-block;
+        width: 32px;
+        height: 48px;
+        background: #eee;
+      }
+      .mat-mdc-tab-labels {
+        display: flex;
+      }
+      .mdc-tab {
+        padding: 12px 24px;
+      }
+      mat-tab-body[aria-hidden='true'] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <mat-tab-group id="m-def-tabs" class="mat-mdc-tab-group mat-primary">
+        <mat-tab-header class="mat-mdc-tab-header mat-mdc-tab-header-pagination-controls-enabled">
+          <div
+            mat-ripple=""
+            class="mat-ripple mat-mdc-tab-header-pagination mat-mdc-tab-header-pagination-before"
+          >
+            <div class="mat-mdc-tab-header-pagination-chevron"></div>
+          </div>
+          <div class="mat-mdc-tab-label-container">
+            <div role="tablist" class="mat-mdc-tab-list">
+              <div class="mat-mdc-tab-labels">
+                <div
+                  role="tab"
+                  class="mdc-tab mat-mdc-tab mat-focus-indicator mdc-tab--active"
+                  id="mat-tab-group-0-label-0"
+                  tabindex="0"
+                  aria-selected="true"
+                >
+                  <span class="mdc-tab__content"
+                    ><span class="mdc-tab__text-label">First</span></span
+                  >
+                </div>
+                <div
+                  role="tab"
+                  class="mdc-tab mat-mdc-tab mat-focus-indicator"
+                  id="mat-tab-group-0-label-1"
+                  tabindex="-1"
+                  aria-selected="false"
+                >
+                  <span class="mdc-tab__content"
+                    ><span class="mdc-tab__text-label">Second</span></span
+                  >
+                </div>
+                <div
+                  role="tab"
+                  class="mdc-tab mat-mdc-tab mat-focus-indicator"
+                  id="mat-tab-group-0-label-2"
+                  tabindex="-1"
+                  aria-selected="false"
+                >
+                  <span class="mdc-tab__content"
+                    ><span class="mdc-tab__text-label">Third</span></span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            mat-ripple=""
+            class="mat-ripple mat-mdc-tab-header-pagination mat-mdc-tab-header-pagination-after"
+          >
+            <div class="mat-mdc-tab-header-pagination-chevron"></div>
+          </div>
+        </mat-tab-header>
+        <div class="mat-mdc-tab-body-wrapper">
+          <mat-tab-body role="tabpanel" class="mat-mdc-tab-body" aria-hidden="false"
+            >First panel</mat-tab-body
+          >
+          <mat-tab-body
+            role="tabpanel"
+            class="mat-mdc-tab-body"
+            aria-hidden="true"
+            inert=""
+          ></mat-tab-body>
+        </div>
+      </mat-tab-group>
+      <mat-slide-toggle id="m-def-toggle" class="mat-mdc-slide-toggle mat-accent">
+        <div mat-internal-form-field="" class="mdc-form-field mat-internal-form-field">
+          <button
+            role="switch"
+            type="button"
+            class="mdc-switch mdc-switch--unselected"
+            tabindex="0"
+            id="m-def-toggle-button"
+            aria-labelledby="mat-mdc-slide-toggle-0-label"
+            aria-checked="false"
+          >
+            <span class="mdc-switch__track"></span>
+          </button>
+          <label class="mdc-label" for="m-def-toggle-button" id="mat-mdc-slide-toggle-0-label"
+            >Notify</label
+          >
+        </div>
+      </mat-slide-toggle>
+      <mat-checkbox id="m-def-check" class="mat-mdc-checkbox mat-accent">
+        <label
+          mat-internal-form-field=""
+          class="mdc-form-field mat-internal-form-field"
+          for="m-def-check-input"
+        >
+          <span class="mdc-checkbox">
+            <input
+              type="checkbox"
+              class="mdc-checkbox__native-control"
+              id="m-def-check-input"
+              tabindex="0"
+            />
+          </span>
+          <span class="mat-internal-form-field-label mdc-label">Accept</span>
+        </label>
+      </mat-checkbox>
+    </main>
+    <script>
+      const listen = (element, types) =>
+        types.forEach((type) => element.addEventListener(type, () => undefined));
+      document.querySelectorAll('.mat-mdc-tab-header-pagination').forEach((arrow) => {
+        listen(arrow, ['click', 'mousedown', 'touchend', 'touchstart']);
+      });
+      document.querySelectorAll('[role="tab"]').forEach((tab) => listen(tab, ['click']));
+      document
+        .querySelectorAll(
+          'label.mdc-label, label.mdc-form-field, .mdc-switch, .mdc-checkbox__native-control',
+        )
+        .forEach((element) => listen(element, ['click']));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  Tab through an open shadow root, a closed one and a same-origin frame (ADR 0007). The walk goes
+  through all of them; the frame's elements count for the walk and give no finding, so the button
+  in the frame, which shows no focus, is not reported.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Shadow roots and a frame</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main > * {
+        margin: 8px 16px;
+        display: block;
+      }
+      iframe {
+        width: 400px;
+        height: 80px;
+        border: 1px solid #999;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button id="first">First</button>
+      <open-box id="open"></open-box>
+      <closed-box id="closed"></closed-box>
+      <iframe
+        id="frame"
+        title="Same-origin frame"
+        srcdoc="&lt;style&gt;button:focus { outline: none }&lt;/style&gt;&lt;button id=f1&gt;Frame one&lt;/button&gt;"
+      ></iframe>
+      <button id="last">Last</button>
+    </main>
+    <script>
+      customElements.define(
+        'open-box',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML =
+              '<button id="o1">Open one</button> <button id="o2">Open two</button>';
+          }
+        },
+      );
+      customElements.define(
+        'closed-box',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'closed' }).innerHTML = '<button id="c1">Closed one</button>';
+          }
+        },
+      );
+    </script>
+  </body>
+</html>

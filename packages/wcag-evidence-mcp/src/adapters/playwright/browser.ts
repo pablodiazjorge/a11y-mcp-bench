@@ -18,6 +18,7 @@ import type {
 } from '../../core/browser.ts';
 import type { Log } from '../../core/log.ts';
 import { checkUrl, isLocalAddress } from '../../core/url-policy.ts';
+import { createKeyboardDriver, type IsolatedWorld } from './keyboard.ts';
 
 /**
  * The part of the second layer of the URL policy (ADR 0005) that lives in Chromium itself.
@@ -164,7 +165,7 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
     if (documents.changed()) return failed({ reason: 'navigated' });
     const isolated = await isolatedWorld(documents);
     const settling = await settle(
-      isolated,
+      isolated.evaluate,
       network,
       documents,
       Math.min(settleTimeoutMs, (deadline - Date.now()) / 2),
@@ -177,14 +178,15 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
         status: response.status(),
         settled: settling === 'settled',
         evaluate: (script) => page.evaluate<unknown>(script),
-        evaluateIsolated: isolated,
+        evaluateIsolated: isolated.evaluate,
         refusedRequests: () => [...refused],
+        keyboard: createKeyboardDriver(page, documents.session, isolated),
       },
     };
   }
 
   return {
-    async visit(url, use) {
+    async visit(url, use, since) {
       const asked = checkUrl(url);
       if (!asked.allowed) return failed({ reason: 'url-policy', url, rejection: asked.reason });
       if (closed) {
@@ -196,7 +198,7 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
       let deadline: number;
       try {
         running = await browser();
-        deadline = Date.now() + visitTimeoutMs;
+        deadline = (since ?? Date.now()) + visitTimeoutMs;
         context = await running.newContext({ serviceWorkers: 'block', acceptDownloads: false });
       } catch (error) {
         return failed({ reason: 'browser-unavailable', message: firstLine(error) });
@@ -210,11 +212,14 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
           resolve('expired');
         };
       });
-      const timer = setTimeout(() => {
-        timedOut = true;
-        expire();
-        void context.close().catch(() => undefined);
-      }, visitTimeoutMs);
+      const timer = setTimeout(
+        () => {
+          timedOut = true;
+          expire();
+          void context.close().catch(() => undefined);
+        },
+        Math.max(0, deadline - Date.now()),
+      );
       // The context closes before the visit ends only when the browser closed or crashed, which is
       // not an error of the caller. Playwright's error can arrive before its events, so after a
       // failure the context is asked once more. A context that does not answer in time counts as
@@ -291,16 +296,14 @@ const WORLD_NAME = 'wcag-evidence-mcp';
  * which is all that axe-core and the wait need, but none of the page's JavaScript: a page that
  * replaces `window.axe`, `Array.prototype.map` or `MutationObserver` changes only its own world.
  */
-async function isolatedWorld(
-  documents: DocumentWatch,
-): Promise<(script: string) => Promise<unknown>> {
+async function isolatedWorld(documents: DocumentWatch): Promise<IsolatedWorld> {
   const { session } = documents;
   const { frameTree } = await session.send('Page.getFrameTree');
   const created = await session.send('Page.createIsolatedWorld', {
     frameId: frameTree.frame.id,
     worldName: WORLD_NAME,
   });
-  return async (script) => {
+  const evaluate = async (script: string): Promise<unknown> => {
     let evaluated;
     try {
       evaluated = await session.send('Runtime.evaluate', {
@@ -320,6 +323,7 @@ async function isolatedWorld(
     const value: unknown = evaluated.result.value;
     return value;
   };
+  return { evaluate, contextId: created.executionContextId };
 }
 
 /** The page's main frame went to another document after the one asked for had loaded. */
