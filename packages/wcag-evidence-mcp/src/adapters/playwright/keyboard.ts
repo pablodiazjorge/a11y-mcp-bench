@@ -9,6 +9,7 @@ import {
   type WalkKey,
 } from '../../core/browser.ts';
 import { ELEMENT_REGISTRY_SCRIPT, type ElementKey } from '../../core/element-key.ts';
+import { boxSchema, coverageSchema, coverageScript, PARENT_SCRIPT } from './coverage.ts';
 import { decodePng } from './png.ts';
 
 /** The isolated world of the page: a script runner, and its id for the DevTools Protocol. */
@@ -36,16 +37,6 @@ const LONGHANDS: Record<(typeof STYLE_PROPERTIES)[number], readonly string[]> = 
   filter: ['filter'],
   visibility: ['visibility'],
 };
-
-// The parent of a node across shadow roots and same-origin frames.
-const PARENT_SCRIPT = String.raw`
-const parentOf = (node) => {
-  if (node.parentElement) return node.parentElement;
-  const root = node.getRootNode();
-  if (root instanceof ShadowRoot) return root.host;
-  return node.ownerDocument?.defaultView?.frameElement ?? null;
-};
-`;
 
 const FOCUSED_SCRIPT = String.raw`(() => {
 ${ELEMENT_REGISTRY_SCRIPT}
@@ -230,7 +221,6 @@ return {
 };
 }`;
 
-const boxSchema = z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() });
 const focusStopSchema = z.object({
   key: z.number().int().positive().nullable(),
   box: boxSchema.nullable(),
@@ -353,6 +343,9 @@ export function createKeyboardDriver(
         targets.push({ ...classified, events: CLICK_EVENTS.filter((type) => types.has(type)) });
       }
       return targets;
+    },
+    async coverage(key) {
+      return coverageSchema.parse(await world.evaluate(coverageScript(key)));
     },
   };
 }

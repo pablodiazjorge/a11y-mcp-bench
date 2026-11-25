@@ -1,0 +1,310 @@
+<!doctype html>
+<!--
+  The cases of 2.4.11 (ADR 0007), one per value of ?case=, most of them those of the trial:
+  "fixed-header" hides links when Tab goes back, "fixed-footer" when it goes forward, as F110 says;
+  "sticky" is a sticky header and "banner" a cookie banner; "layers" puts one layer over each
+  button; "edges" holds a skip link, a link that stays off screen, elements with pointer-events:
+  none and an empty link; "shadow" has a bar drawn in a shadow root, a link in one and a frame;
+  "material" has the overlay of the Angular CDK and the markup of a checkbox of Angular Material;
+  "checkboxes" puts checkboxes of Material, whose inputs draw nothing, under a fixed header;
+  "native" puts such an input under a header that the points pass through; "behind" puts a button
+  behind the background of its own parent, with a negative z-index.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Obscured focus</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      .item {
+        height: 32px;
+        margin: 0 16px;
+      }
+      .item a {
+        display: inline-block;
+        height: 24px;
+        line-height: 24px;
+      }
+      .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: #234;
+        color: #fff;
+        z-index: 10;
+      }
+      .fixed-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: #234;
+        color: #fff;
+        z-index: 10;
+      }
+      .sticky {
+        position: sticky;
+        top: 0;
+        height: 80px;
+        background: #234;
+        color: #fff;
+        z-index: 10;
+      }
+      #cookies {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100px;
+        background: #333;
+        color: #fff;
+        padding: 12px;
+        box-sizing: border-box;
+        z-index: 5;
+      }
+      .row {
+        position: relative;
+        height: 48px;
+        margin: 4px 16px;
+        display: flex;
+        align-items: center;
+      }
+      .slot {
+        position: relative;
+        display: inline-block;
+      }
+      .row button {
+        font: inherit;
+        width: 120px;
+        height: 32px;
+      }
+      .cover {
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        width: 124px;
+        height: 36px;
+        z-index: 2;
+      }
+      .skip {
+        position: absolute;
+        left: -10000px;
+        top: 0;
+      }
+      .skip:focus {
+        left: 16px;
+      }
+      .lost {
+        position: absolute;
+        left: -10000px;
+      }
+      /* The structural rules of the overlay of the Angular CDK 22.2.7. */
+      .cdk-overlay-container,
+      .cdk-global-overlay-wrapper {
+        pointer-events: none;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+      }
+      .cdk-overlay-container {
+        position: fixed;
+        z-index: 1000;
+      }
+      .cdk-global-overlay-wrapper {
+        display: flex;
+        position: absolute;
+        z-index: 1000;
+      }
+      .cdk-overlay-pane {
+        position: absolute;
+        pointer-events: auto;
+        box-sizing: border-box;
+        display: flex;
+        max-width: 100%;
+        max-height: 100%;
+        z-index: 1000;
+      }
+      .notice {
+        width: 100%;
+        background: #222;
+        color: #fff;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      /* A checkbox as Angular Material draws it: the native input, with an opacity of 0, over the
+         box that shows, and a state layer that shows its focus over both. */
+      .mdc-checkbox {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        margin: 8px 16px;
+      }
+      .mdc-checkbox__native-control {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        width: 40px;
+        height: 40px;
+        opacity: 0;
+        z-index: 1;
+      }
+      .mdc-checkbox__background {
+        position: absolute;
+        left: 11px;
+        top: 11px;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #444;
+        box-sizing: border-box;
+      }
+      .mdc-checkbox__ripple {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        pointer-events: none;
+        background: #6750a4;
+        opacity: 0;
+      }
+      .mdc-checkbox__native-control:focus ~ .mdc-checkbox__ripple {
+        opacity: 0.12;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="main"></main>
+    <script>
+      const kind = new URLSearchParams(location.search).get('case') || 'sticky';
+      const main = document.getElementById('main');
+      const links = (from, to) =>
+        Array.from(
+          { length: to - from + 1 },
+          (_, index) =>
+            `<div class="item"><a href="#i${from + index}" id="l${from + index}">Link ${from + index}</a></div>`,
+        ).join('');
+      const checkbox = (id) =>
+        `<div class="mdc-checkbox"><input type="checkbox" class="mdc-checkbox__native-control" id="${id}" aria-label="${id}" /><div class="mdc-checkbox__background"></div><div class="mdc-checkbox__ripple"></div></div>`;
+      const row = (id, cover) =>
+        `<div class="row"><span class="slot"><button id="${id}">${id}</button>${
+          cover === null ? '' : `<div class="cover" id="c-${id}" style="${cover}"></div>`
+        }</span></div>`;
+
+      if (kind === 'fixed-header') {
+        document.body.style.paddingTop = '80px';
+        main.insertAdjacentHTML(
+          'beforebegin',
+          '<header class="fixed-header">Fixed header</header>',
+        );
+        main.innerHTML = links(1, 40);
+      }
+      if (kind === 'fixed-footer') {
+        main.innerHTML = links(1, 40);
+        main.insertAdjacentHTML('afterend', '<footer class="fixed-footer">Fixed footer</footer>');
+      }
+      if (kind === 'sticky') {
+        main.insertAdjacentHTML('beforebegin', '<header class="sticky">Sticky header</header>');
+        main.innerHTML = links(1, 40);
+      }
+      if (kind === 'banner') {
+        main.innerHTML = links(1, 40);
+        main.insertAdjacentHTML(
+          'afterend',
+          '<div id="cookies">We use cookies. <button id="cookie-ok">Accept</button></div>',
+        );
+      }
+      if (kind === 'layers') {
+        main.innerHTML = [
+          // Hidden: an opaque layer, one that the points pass through, and two semi-transparent ones.
+          row('full', 'background: #ccc'),
+          row('through', 'background: #ccc; pointer-events: none'),
+          row('semi', 'background: rgba(0, 0, 0, 0.5)'),
+          row('faded', 'background: #ccc; opacity: 0.5'),
+          // Not hidden: half covered, the centre covered, and layers that paint nothing.
+          row('half', 'background: #ccc; width: 62px'),
+          row('centre', 'background: #ccc; left: 20px; width: 80px'),
+          row('invisible', 'background: #000; opacity: 0'),
+          row('clear', 'background: transparent; pointer-events: none'),
+          row('empty', 'background: rgba(0, 0, 0, 0)'),
+          // Not hidden: its own child over it, and a positioned background beneath it.
+          '<div class="row"><button id="child" style="position: relative"><span style="position: absolute; inset: -2px; background: #79c">child</span></button></div>',
+          '<div class="row" id="hero"><div style="position: absolute; inset: 0; background: #def"></div><div style="position: relative"><button id="under">under</button></div></div>',
+        ].join('');
+      }
+      if (kind === 'edges') {
+        main.innerHTML = [
+          '<a class="skip" id="skip" href="#main">Skip to content</a>',
+          '<a class="lost" id="lost" href="#lost">Lost link</a>',
+          '<div class="row"><button id="pass" style="pointer-events: none">Pass</button></div>',
+          '<div class="row"><span class="slot"><button id="pass-covered" style="pointer-events: none">Pass covered</button><div class="cover" style="background: #ccc"></div></span></div>',
+          '<div class="row"><a id="no-size" href="#no-size" style="display: inline-block; width: 0; height: 0; overflow: hidden">No size</a></div>',
+        ].join('');
+      }
+      if (kind === 'shadow') {
+        customElements.define(
+          'fixed-bar',
+          class extends HTMLElement {
+            constructor() {
+              super();
+              this.attachShadow({ mode: 'open' }).innerHTML =
+                '<div class="bar" style="position: fixed; left: 0; right: 0; bottom: 0; height: 100px; background: #333; z-index: 5"></div>';
+            }
+          },
+        );
+        customElements.define(
+          'link-box',
+          class extends HTMLElement {
+            constructor() {
+              super();
+              this.attachShadow({ mode: 'open' }).innerHTML =
+                '<div class="item" style="height: 32px"><a id="inside" href="#inside" style="display: inline-block; height: 24px">Shadow link</a></div>';
+            }
+          },
+        );
+        main.innerHTML =
+          links(1, 20) +
+          '<link-box id="box"></link-box>' +
+          '<iframe id="frame" title="Frame" style="height: 30px; border: 0; margin: 0 16px; display: block" srcdoc="&lt;button id=f1&gt;Frame button&lt;/button&gt;"></iframe>' +
+          links(21, 40);
+        main.insertAdjacentHTML('afterend', '<fixed-bar id="bar"></fixed-bar>');
+      }
+      if (kind === 'native') {
+        main.insertAdjacentHTML(
+          'beforebegin',
+          '<div class="fixed-header" id="see-through" style="pointer-events: none"></div>',
+        );
+        main.innerHTML =
+          '<div style="height: 20px"></div><label style="position: relative; display: inline-block; width: 40px; height: 40px; background: #c33"><input type="checkbox" id="native" aria-label="Native" style="position: absolute; inset: 0; margin: 0; opacity: 0" /></label><button id="plain" style="margin-left: 20px">Plain</button><div style="height: 120px"></div><button id="last">Last</button>';
+      }
+      if (kind === 'behind') {
+        main.innerHTML =
+          '<button id="before">Before</button><div id="wrap" style="background: #ddd; padding: 10px"><button id="under" style="position: relative; z-index: -1">Under</button></div><button id="after">After</button>';
+      }
+      if (kind === 'checkboxes') {
+        document.body.style.paddingTop = '80px';
+        main.insertAdjacentHTML(
+          'beforebegin',
+          '<header class="fixed-header">Fixed header</header>',
+        );
+        main.innerHTML = Array.from(
+          { length: 30 },
+          (_, index) => `<div>${checkbox(`c${String(index + 1)}`)}</div>`,
+        ).join('');
+      }
+      if (kind === 'material') {
+        main.innerHTML = checkbox('check') + links(1, 40);
+        main.insertAdjacentHTML(
+          'afterend',
+          '<div class="cdk-overlay-container"><div class="cdk-global-overlay-wrapper" dir="ltr" style="justify-content: flex-start; align-items: flex-end"><div id="cdk-overlay-0" class="cdk-overlay-pane" style="width: 100%; height: 90px; position: static"><div class="notice">A notice <button id="notice-ok">OK</button></div></div></div></div>',
+        );
+      }
+    </script>
+  </body>
+</html>

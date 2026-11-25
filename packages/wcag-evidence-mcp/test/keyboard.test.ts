@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type {
   Box,
   ClickTarget,
+  Coverage,
   FocusStop,
   Frame,
   KeyboardDriver,
@@ -30,6 +31,8 @@ interface Script {
   /** The element that `key` moves focus to, from the focused one (null for the body). */
   next(from: number | null, key: WalkKey): number | null;
   readonly targets?: readonly ClickTarget[];
+  /** What lies over the focused element, once `key` gave it focus; nothing by default. */
+  coverage?(focused: number, key: WalkKey | undefined): Coverage | null;
 }
 
 /** A keyboard over the script, and what it was asked to press. */
@@ -82,6 +85,16 @@ function simulated(script: Script): KeyboardDriver & { readonly pressed: WalkKey
     capture: () => Promise.resolve(frame()),
     styles: () => Promise.resolve({}),
     clickTargets: () => Promise.resolve(script.targets ?? []),
+    coverage: (key) =>
+      Promise.resolve(
+        script.coverage?.(key, pressed.at(-1)) ?? {
+          box: inViewport(key),
+          viewport: { width: SIZE, height: SIZE },
+          points: Array<null>(25).fill(null),
+          draws: true,
+          layers: [],
+        },
+      ),
   };
 }
 
@@ -396,7 +409,7 @@ describe('walkKeyboard', () => {
     ]);
   });
 
-  it('walks only for the criteria asked for: no Shift+Tab without 2.1.2, no capture without 2.4.7', async () => {
+  it('walks both directions whatever is asked for, but captures nothing without 2.4.7', async () => {
     const script: Script = {
       elements: { 1: { box: box(10), indicator: false } },
       next: inOrder([1]),
@@ -416,6 +429,117 @@ describe('walkKeyboard', () => {
 
     expect(findings).toStrictEqual([]);
     expect(captures).toBe(0);
-    expect(keyboard.pressed).not.toContain('Shift+Tab');
+    expect(keyboard.pressed).toContain('Shift+Tab');
+  });
+
+  // What lies over the focused element: a layer, key 9, at every point, or nothing in the viewport.
+  const underLayer = (focused: number, layer = 9): Coverage => ({
+    box: box(focused * 40 - 30),
+    viewport: { width: SIZE, height: SIZE },
+    points: Array<number>(25).fill(layer),
+    draws: true,
+    layers: [],
+  });
+  const three = Object.fromEntries(
+    [1, 2, 3].map((key) => [key, { box: box(key * 40 - 30), indicator: true }]),
+  );
+
+  it('reports an element hidden while Shift+Tab gives it focus, with the layer located then', async () => {
+    const { findings, notChecked, pressed } = await walked(
+      {
+        elements: three,
+        next: inOrder([1, 2, 3]),
+        coverage: (focused, key) => (focused === 2 && key === 'Shift+Tab' ? underLayer(2) : null),
+      },
+      ['2.4.11'],
+    );
+
+    expect(notChecked).toStrictEqual([]);
+    expect(pressed).not.toContain('Escape');
+    expect(
+      findings.map(({ rule, selector, measurement }) => [rule, selector, measurement]),
+    ).toStrictEqual([
+      [
+        'focus-not-obscured',
+        '#e2',
+        {
+          kind: 'focus-not-obscured',
+          directions: ['backward'],
+          points: 25,
+          pointsOnElement: 0,
+          inViewport: 1,
+          layer: { rect: { x: 0, y: 90, width: 10, height: 10 }, selector: '#e9' },
+        },
+      ],
+    ]);
+  });
+
+  it('gives one finding for an element hidden in both directions, with the numbers of the first', async () => {
+    const { findings } = await walked(
+      {
+        elements: three,
+        next: inOrder([1, 2, 3]),
+        coverage: (focused, key) => {
+          if (focused !== 2) return null;
+          return key === 'Tab' ? underLayer(2) : underLayer(2, 8);
+        },
+      },
+      ['2.4.11'],
+    );
+
+    expect(findings.map(({ selector, measurement }) => [selector, measurement])).toStrictEqual([
+      [
+        '#e2',
+        {
+          kind: 'focus-not-obscured',
+          directions: ['forward', 'backward'],
+          points: 25,
+          pointsOnElement: 0,
+          inViewport: 1,
+          layer: { rect: { x: 0, y: 90, width: 10, height: 10 }, selector: '#e9' },
+        },
+      ],
+    ]);
+  });
+
+  it('cannot check 2.4.11 whole when Shift+Tab ends in a trap, which it reports only for 2.1.2', async () => {
+    // Shift+Tab goes round 3 and 2, and Escape does not get it out.
+    const next: Script['next'] = (from, key) =>
+      key === 'Shift+Tab' ? (from === 3 ? 2 : 3) : inOrder([1, 2, 3])(from, key);
+
+    const { findings, notChecked, pressed } = await walked({ elements: three, next }, ['2.4.11']);
+
+    expect(notChecked).toStrictEqual(['2.4.11']);
+    expect(pressed).toContain('Escape');
+    expect(findings).toStrictEqual([]);
+  });
+
+  it('presses Escape in a cycle whatever the criteria, and compares what comes after with the page once focus leaves', async () => {
+    // Tab goes round 2 and 3 until Escape, as in a dialog open at load, and then on to 4.
+    let open = true;
+    const next: Script['next'] = (from, key) => {
+      if (key === 'Escape') {
+        open = false;
+        return from;
+      }
+      if (from === 3) return open ? 2 : 4;
+      return inOrder([1, 2, 3, 4])(from, key);
+    };
+    const elements = {
+      ...Object.fromEntries(
+        [1, 2, 3].map((key) => [key, { box: box(key * 40 - 30), indicator: true }]),
+      ),
+      4: { box: box(130), indicator: false },
+    };
+
+    const { findings, notChecked } = await walked({ elements, next }, ['2.4.7']);
+
+    expect(notChecked).toStrictEqual([]);
+    expect(
+      findings.map(({ selector, measurement }) => [
+        selector,
+        measurement.kind === 'focus-visible' ? measurement.reference : null,
+      ]),
+    ).toStrictEqual([['#e4', 'leave']]);
   });
 });

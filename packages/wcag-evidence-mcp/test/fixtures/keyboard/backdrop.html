@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  A dialog open at load, over a backdrop, that holds focus until Escape closes both (ADR 0007). The
+  buttons behind it show no focus. Compared with the page at load, where the backdrop darkens them,
+  they would seem to change with focus; compared with the page once focus has left them, they do not,
+  and each one is a finding of 2.4.7.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A dialog at load</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main > * {
+        display: block;
+        margin: 8px 16px;
+      }
+      .plain:focus {
+        outline: none;
+      }
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .dialog {
+        position: fixed;
+        top: 200px;
+        left: 400px;
+        padding: 16px;
+        border: 1px solid #333;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button class="plain" id="p1">One</button>
+      <button class="plain" id="p2">Two</button>
+      <button class="plain" id="p3">Three</button>
+      <button class="plain" id="p4">Four</button>
+    </main>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-label="Notice">
+      <button id="ok">OK</button>
+      <button id="cancel">Cancel</button>
+    </div>
+    <script>
+      const dialog = document.getElementById('dialog');
+      const ok = document.getElementById('ok');
+      const cancel = document.getElementById('cancel');
+      dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          dialog.remove();
+          document.getElementById('backdrop').remove();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        event.preventDefault();
+        (document.activeElement === ok ? cancel : ok).focus();
+      });
+      ok.focus();
+    </script>
+  </body>
+</html>
