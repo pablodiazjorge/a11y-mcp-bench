@@ -56,23 +56,25 @@ describe('explainCriterion', () => {
 
     const notAudited = CRITERIA.filter(({ id }) => explainCriterion(id)?.audited === false);
     expect(notAudited.map(({ id }) => id)).toStrictEqual(result.output.notChecked);
-    expect(result.output.notChecked).toStrictEqual(['2.1.2', '2.4.3', '2.4.7', '2.4.11']);
+    expect(result.output.notChecked).toStrictEqual(['2.4.11']);
   });
 
-  it('says which own check each criterion has, none of them built yet', () => {
-    expect(CRITERIA.map(({ id }) => [id, explainCriterion(id)?.ownCheck])).toStrictEqual([
-      ['1.1.1', 'none'],
-      ['1.3.1', 'none'],
-      ['1.3.5', 'none'],
-      ['1.4.3', 'none'],
-      ['2.1.1', 'heuristic, not built yet'],
-      ['2.1.2', 'heuristic, not built yet'],
-      ['2.4.3', 'heuristic, not built yet'],
-      ['2.4.4', 'none'],
-      ['2.4.7', 'not built yet'],
-      ['2.4.11', 'not built yet'],
-      ['2.5.8', 'none'],
-      ['4.1.2', 'none'],
+  it('says which own check each criterion has, with its rule, all built but that of 2.4.11', () => {
+    expect(
+      CRITERIA.map(({ id }) => [id, explainCriterion(id)?.ownCheck, explainCriterion(id)?.ownRule]),
+    ).toStrictEqual([
+      ['1.1.1', 'none', null],
+      ['1.3.1', 'none', null],
+      ['1.3.5', 'none', null],
+      ['1.4.3', 'none', null],
+      ['2.1.1', 'heuristic', 'click-not-reachable'],
+      ['2.1.2', 'heuristic', 'keyboard-trap'],
+      ['2.4.3', 'heuristic', 'focus-order'],
+      ['2.4.4', 'none', null],
+      ['2.4.7', 'check', 'focus-visible'],
+      ['2.4.11', 'not built yet', null],
+      ['2.5.8', 'none', null],
+      ['4.1.2', 'none', null],
     ]);
   });
 
@@ -87,8 +89,8 @@ describe('explainCriterion', () => {
   it('stays far under the cap of an output, 4.1.2 being the largest', () => {
     const sizes = CRITERIA.map(({ id }) => JSON.stringify(explainCriterion(id)).length);
 
-    expect(Math.max(...sizes)).toBe(1319);
-    expect(sizes.indexOf(1319)).toBe(CRITERIA.findIndex(({ id }) => id === '4.1.2'));
+    expect(Math.max(...sizes)).toBe(1334);
+    expect(sizes.indexOf(1334)).toBe(CRITERIA.findIndex(({ id }) => id === '4.1.2'));
     expect(2 * Math.max(...sizes)).toBeLessThan(OUTPUT_CAP);
   });
 });

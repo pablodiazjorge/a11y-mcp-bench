@@ -90,7 +90,11 @@ const ERROR_CASES: readonly ErrorCase[] = [
     when: 'The result of axe-core cannot be read',
     params: auditRoute({ url: LOCAL_PAGE }),
     browser: createBrowserDouble(pageDouble()),
-    ruleEngine: { name: 'double', run: () => Promise.reject(new Error('unreadable')) },
+    ruleEngine: {
+      name: 'double',
+      run: () => Promise.reject(new Error('unreadable')),
+      locate: () => Promise.resolve([]),
+    },
   },
   {
     request: 'tools/call explain_criterion',

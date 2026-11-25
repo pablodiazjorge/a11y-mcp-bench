@@ -1,6 +1,6 @@
 # WCAG 2.2 scope
 
-The server's audit tools check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The first tool, `audit_route`, runs the axe-core rules; the server's own checks are not built yet. This page fixes what the tools check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
+The server's audit tools check twelve WCAG 2.2 success criteria (the testable requirements of the standard), all at level A or AA. The first tool, `audit_route`, runs the axe-core rules and walks the page with the keyboard for the server's own checks, all built but that of 2.4.11. This page fixes what the tools check. It lists the criteria, how the server decides each one and what is left for manual testing, and what is out of scope and why.
 
 The criteria and their wording come from the [WCAG 2.2 W3C Recommendation](https://www.w3.org/TR/WCAG22/) of 12 December 2024. The rule identifiers come from axe-core 4.14.0 (the open-source library of automatic accessibility checks that the server runs), the version that the counts on this page come from. Both were checked on 2026-11-20. Why the server exists and why it stays small is in [ADR 0001](adr/0001-scope-and-non-goals.md); what a finding looks like is in [ADR 0004](adr/0004-server-architecture.md).
 
@@ -79,26 +79,26 @@ axe-core decides the first six criteria. The rules listed for each are those tha
 ### 2.1.1 Keyboard (A)
 
 - **Requires:** everything on the page can be done with a keyboard.
-- **Own check (a heuristic), to come with the keyboard checks:** an element with a listener of click or pointer events that the walk with Tab does not reach, nor any ancestor or descendant of it ([ADR 0007](adr/0007-keyboard-checks.md)).
+- **Own check (a heuristic):** an element with a listener of click or pointer events that the walk with Tab does not reach, nor any ancestor or descendant of it ([ADR 0007](adr/0007-keyboard-checks.md)).
 - **Manual:** functions that the heuristic cannot see, such as a menu that opens only on hover or a widget that needs arrow keys.
 - **axe-core:** version 4.14.0 also tags three of its default rules with 2.1.1: `frame-focusable-content`, `scrollable-region-focusable` and `server-side-image-map`. `audit_route` runs them and reports them as the automatic part of 2.1.1, under 2.1.1 alone: `scrollable-region-focusable` also carries 2.1.3, at level AAA, which a finding does not list.
 
 ### 2.1.2 No Keyboard Trap (A)
 
 - **Requires:** when the keyboard can move focus into a part of the page, it can also move focus out of it, and the user is told how if it takes more than the usual keys.
-- **Own check (a heuristic), to come with the keyboard checks:** a focus cycle that repeats without passing through the browser's interface, and that one Escape does not break, with the keys that were tried. The check presses Tab, Shift+Tab and, inside such a cycle only, Escape ([ADR 0007](adr/0007-keyboard-checks.md)).
+- **Own check (a heuristic):** a focus cycle that repeats without passing through the browser's interface, and that one Escape does not break, with the keys that were tried. The check presses Tab, Shift+Tab and, inside such a cycle only, Escape ([ADR 0007](adr/0007-keyboard-checks.md)).
 - **Manual:** a trap that only other keys would show, and whether the page explains a way out that is not standard.
 
 ### 2.4.3 Focus Order (A)
 
 - **Requires:** keyboard focus moves through the page in an order that keeps its meaning and lets it be used.
-- **Own check (a heuristic), to come with the keyboard checks:** back jumps, where the next stop of Tab is above in the same column, or to the left in the same row ([ADR 0007](adr/0007-keyboard-checks.md)).
+- **Own check (a heuristic):** back jumps, where the next stop of Tab is above in the same column, or to the left in the same row ([ADR 0007](adr/0007-keyboard-checks.md)).
 - **Manual:** whether an order makes sense for the content, which no comparison of positions can decide.
 
 ### 2.4.7 Focus Visible (AA)
 
 - **Requires:** any part of the page that works with a keyboard shows when it has the keyboard focus.
-- **Own check, to come with the keyboard checks:** when Tab gives an element focus, at least one pixel of its rectangle plus 12 px changes, compared with the page at load, once the page's animations end ([ADR 0007](adr/0007-keyboard-checks.md)).
+- **Own check:** when Tab gives an element focus, at least one pixel of its rectangle plus 12 px changes, compared with the page at load, once the page's animations end ([ADR 0007](adr/0007-keyboard-checks.md)).
 - **Manual:** an indicator drawn more than 12 px from the element; whether a small change, such as the selected text of a field, is visible enough to count; and an empty field whose only indicator is the text cursor, which the check hides.
 
 ### 2.4.11 Focus Not Obscured (Minimum) (AA)

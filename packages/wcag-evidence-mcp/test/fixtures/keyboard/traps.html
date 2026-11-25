@@ -1,0 +1,80 @@
+<!doctype html>
+<!--
+  The cases of 2.1.2 (ADR 0007), one per value of ?case=. "keydown", "loop", "timer" and "sticky"
+  hold focus in the region; "escape" lets Escape release it; "held" releases it on Escape only after
+  eight more keys, as the focus trap of the Angular CDK did; "dialog" is a native modal dialog, which
+  passes through the body; "none" has no trap.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Keyboard traps</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main > * {
+        margin: 8px 16px;
+      }
+      .region {
+        border: 1px dashed #888;
+        padding: 8px;
+        display: inline-flex;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button id="before">Before</button>
+      <div class="region" id="region">
+        <button id="in1">In one</button><button id="in2">In two</button>
+      </div>
+      <button id="after">After</button>
+    </main>
+    <dialog id="dialog">Dialog <button id="d1">One</button> <button id="d2">Two</button></dialog>
+    <script>
+      const kind = new URLSearchParams(location.search).get('case') || 'none';
+      const region = document.getElementById('region');
+      const in1 = document.getElementById('in1');
+      const in2 = document.getElementById('in2');
+      let trapping = true;
+      let releaseAfter = Infinity;
+      const loop = (event) => {
+        if (!trapping || event.key !== 'Tab') return;
+        if (event.target === in2 && !event.shiftKey) {
+          event.preventDefault();
+          in1.focus();
+        } else if (event.target === in1 && event.shiftKey) {
+          event.preventDefault();
+          in2.focus();
+        }
+        releaseAfter -= 1;
+        if (releaseAfter <= 0) trapping = false;
+      };
+      if (kind === 'keydown') {
+        in1.addEventListener('keydown', (event) => {
+          if (event.key === 'Tab') event.preventDefault();
+        });
+      } else if (kind === 'loop' || kind === 'escape' || kind === 'held') {
+        region.addEventListener('keydown', loop);
+        if (kind === 'escape') {
+          region.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') trapping = false;
+          });
+        }
+        if (kind === 'held') {
+          region.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') releaseAfter = 8;
+          });
+        }
+      } else if (kind === 'timer') {
+        in1.addEventListener('blur', () => setTimeout(() => in1.focus(), 0));
+      } else if (kind === 'dialog') {
+        document.getElementById('dialog').showModal();
+      }
+    </script>
+  </body>
+</html>

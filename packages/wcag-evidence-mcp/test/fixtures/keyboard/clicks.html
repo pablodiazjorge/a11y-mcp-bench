@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  The cases of 2.1.1 (ADR 0007): elements that respond to a click. Those whose id starts with
+  "mouse-" are reachable only with a pointer, and the check reports them; the others are reached by
+  Tab, around them, or are left out on purpose.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Clicks without the keyboard</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px sans-serif;
+        background: #fff;
+      }
+      main > * {
+        margin: 8px 16px;
+      }
+      [role='tab'] {
+        display: inline-block;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="mouse-attribute" onclick="void 0">onclick attribute</div>
+      <div id="mouse-listener">A click listener</div>
+      <div id="mouse-property">An onclick property</div>
+      <div id="mouse-down">A mousedown listener only</div>
+      <ul id="mouse-delegate">
+        <li>Delegated one</li>
+        <li>Delegated two</li>
+      </ul>
+      <a id="mouse-link">A link without href</a>
+      <div id="pointer-cursor" style="cursor: pointer">A pointer cursor, with no listener</div>
+      <button id="button">A button</button>
+      <button id="ancestor"><span id="inside-button">Inside a button</span></button>
+      <div id="around"><button id="inner">Inside a div</button></div>
+      <div id="focusable" tabindex="0">A div with tabindex</div>
+      <div id="hidden-listener" hidden>Not drawn</div>
+      <div role="tablist" aria-label="Reached group">
+        <div role="tab" id="tab-reached" tabindex="0" aria-selected="true">Reached tab</div>
+        <div role="tab" id="tab-other" tabindex="-1" aria-selected="false">Other tab</div>
+      </div>
+      <div role="tablist" aria-label="Unreached group">
+        <div role="tab" id="mouse-tab-one" tabindex="-1">Tab one</div>
+        <div role="tab" id="mouse-tab-two" tabindex="-1">Tab two</div>
+      </div>
+      <input id="agree" type="checkbox" /> <label id="label" for="agree">Agree</label>
+    </main>
+    <script>
+      const listen = (id, type = 'click') =>
+        document.getElementById(id).addEventListener(type, () => undefined);
+      [
+        'mouse-listener',
+        'mouse-delegate',
+        'mouse-link',
+        'button',
+        'inside-button',
+        'around',
+      ].forEach((id) => listen(id));
+      [
+        'focusable',
+        'hidden-listener',
+        'tab-reached',
+        'tab-other',
+        'mouse-tab-one',
+        'mouse-tab-two',
+        'label',
+      ].forEach((id) => listen(id));
+      listen('mouse-down', 'mousedown');
+      // A listener on the body, which covers the whole page: no element of its own to report.
+      document.body.addEventListener('click', () => undefined);
+      document.getElementById('mouse-property').onclick = () => undefined;
+    </script>
+  </body>
+</html>

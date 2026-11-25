@@ -33,7 +33,7 @@ export function createServerFactory(dependencies: ServerDependencies): McpServer
       { name: identity.name, version: identity.version },
       { capabilities: { tools: { listChanged: false }, resources: { listChanged: false } } },
     );
-    registerAuditRouteTool(server, { browser, engine: ruleEngine }, log);
+    registerAuditRouteTool(server, { browser, engine: ruleEngine, log }, log);
     registerExplainCriterionTool(server, log);
     registerCriterionResources(server);
     return server;

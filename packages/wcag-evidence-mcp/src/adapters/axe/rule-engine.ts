@@ -1,10 +1,13 @@
 import axe from 'axe-core';
 import * as z from 'zod';
 import type { LoadedPage } from '../../core/browser.ts';
+import { ELEMENT_REGISTRY_SCRIPT, type ElementKey } from '../../core/element-key.ts';
 import {
+  elementLocationSchema,
   engineFindingSchema,
   isComponentTag,
   type Component,
+  type ElementLocation,
   type EngineFinding,
   type Measurement,
   type RuleEngine,
@@ -135,6 +138,34 @@ const componentOf = (element) => {
 };
 `;
 
+// Numbers the elements of the document, open shadow roots included, and notes whether some element
+// carries `_nghost-`, which tells an Angular app (see COMPONENT_SCRIPT).
+const ORDER_SCRIPT = String.raw`
+const order = new Map();
+let next = 0;
+let hosts = false;
+const walk = (root) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    order.set(node, next++);
+    hosts ||= node.getAttributeNames().some((name) => name.startsWith('_nghost-'));
+    if (node.shadowRoot) walk(node.shadowRoot);
+  }
+};
+walk(document);
+`;
+
+// The opening tag, read with limits on how much leaves the page; the server cuts it to its own caps.
+const ELEMENT_SCRIPT = String.raw`
+const elementOf = (element) => ({
+  tag: element.localName.slice(0, 100),
+  attributes: Array.from(element.attributes)
+    .slice(0, 64)
+    .map((attribute) => ({ name: attribute.name.slice(0, 100), value: attribute.value.slice(0, 100) })),
+  attributeCount: element.attributes.length,
+});
+`;
+
 /**
  * The component as the script read it. A tag that is not a plain custom element name counts as no
  * tag at all, since the tag is text of the page; so does `ng-component`, the tag that Angular gives
@@ -168,19 +199,9 @@ const result = await engine.run(document, {
   iframes: false,
   elementRef: true,
 });
-const order = new Map();
-let next = 0;
-let hosts = false;
-const walk = (root) => {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    order.set(node, next++);
-    hosts ||= node.getAttributeNames().some((name) => name.startsWith('_nghost-'));
-    if (node.shadowRoot) walk(node.shadowRoot);
-  }
-};
-walk(document);
+${ORDER_SCRIPT}
 ${COMPONENT_SCRIPT}
+${ELEMENT_SCRIPT}
 const checks = (list) => list.map((check) => ({ id: check.id, data: check.data ?? null }));
 // The page text that the server may pass on is read here, with limits on how much leaves the page;
 // the server cuts it to its own caps. The opening tag reads the attributes only. The accessible name
@@ -193,13 +214,6 @@ const nameOf = (element) => {
     return null;
   }
 };
-const elementOf = (element) => ({
-  tag: element.localName.slice(0, 100),
-  attributes: Array.from(element.attributes)
-    .slice(0, 64)
-    .map((attribute) => ({ name: attribute.name.slice(0, 100), value: attribute.value.slice(0, 100) })),
-  attributeCount: element.attributes.length,
-});
 const read = {
   version: engine.version,
   violations: result.violations.map((violation) => ({
@@ -222,6 +236,52 @@ engine.teardown();
 return read;
 })()`;
 }
+
+/**
+ * The script that locates elements of the registry as `pageScript` locates those of a finding, with
+ * axe-core's own selector of the moment: the keyboard walk asks it at each stop (ADR 0007). An
+ * element that is no longer in the page, or that is in a frame, gives null.
+ */
+function locateScript(keys: readonly ElementKey[]): string {
+  return `(() => {
+${ELEMENT_REGISTRY_SCRIPT}
+const engine = window.axe;
+${ORDER_SCRIPT}
+${COMPONENT_SCRIPT}
+${ELEMENT_SCRIPT}
+engine.setup(document);
+try {
+  return {
+    version: engine.version,
+    located: ${JSON.stringify(keys)}.map((key) => {
+      const element = registry.get(key);
+      if (!element || !element.isConnected || element.ownerDocument !== document) return null;
+      const target = engine.utils.getShadowSelector(engine.utils.getSelector, element);
+      const box = element.getBoundingClientRect();
+      return {
+        target: [target].flat(Infinity).map(String),
+        rect: { x: box.x + window.scrollX, y: box.y + window.scrollY, width: box.width, height: box.height },
+        documentIndex: order.has(element) ? order.get(element) : -1,
+        component: componentOf(element),
+        element: elementOf(element),
+      };
+    }),
+  };
+} finally {
+  engine.teardown();
+}
+})()`;
+}
+
+const rawLocatedSchema = z.object({
+  version: z.string(),
+  located: z.array(
+    rawResultSchema.shape.violations.element.shape.nodes.element
+      .pick({ rect: true, documentIndex: true, component: true, element: true })
+      .extend({ target: z.array(z.string()) })
+      .nullable(),
+  ),
+});
 
 /** The rule engine adapter: axe-core, run inside the page that the browser port loaded. */
 export function createAxeRuleEngine(): RuleEngine {
@@ -262,6 +322,33 @@ export function createAxeRuleEngine(): RuleEngine {
           }),
         ),
       );
+    },
+
+    async locate(page: LoadedPage, keys: readonly ElementKey[]) {
+      if (keys.length === 0) return [];
+      // axe-core is brought into the isolated world once per page: its source is large.
+      if ((await page.evaluateIsolated('typeof window.axe')) !== 'object') {
+        await page.evaluateIsolated(`${axe.source};0`);
+      }
+      const raw = rawLocatedSchema.parse(await page.evaluateIsolated(locateScript(keys)));
+      if (raw.version !== axe.version)
+        throw new Error('the script ran another version of axe-core');
+      return raw.located.map((read): ElementLocation | null => {
+        const selector = read?.target.filter((part) => part !== '').join(' >>> ') ?? '';
+        if (read === null || selector === '' || read.documentIndex < 0) return null;
+        return elementLocationSchema.parse({
+          selector,
+          rect: {
+            x: Math.round(read.rect.x),
+            y: Math.round(read.rect.y),
+            width: Math.round(read.rect.width),
+            height: Math.round(read.rect.height),
+          },
+          documentIndex: read.documentIndex,
+          component: plainComponent(read.component),
+          element: read.element,
+        });
+      });
     },
   };
 }

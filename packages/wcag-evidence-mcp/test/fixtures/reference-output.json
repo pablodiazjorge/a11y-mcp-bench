@@ -308,7 +308,7 @@
       "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html"
     }
   ],
-  "notChecked": ["2.1.2", "2.4.3", "2.4.7", "2.4.11"],
+  "notChecked": ["2.4.11"],
   "truncated": false,
   "leftOut": []
 }

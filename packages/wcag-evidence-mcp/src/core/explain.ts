@@ -6,6 +6,7 @@
 import * as z from 'zod';
 import { auditedRules } from './audit.ts';
 import { CRITERIA, criterionIdSchema, criterionResource, type Criterion } from './criteria.ts';
+import { KEYBOARD_RULES } from './keyboard.ts';
 
 // The descriptions below are what the agent reads of the output, in the tool's output schema.
 export const explanationSchema = z.strictObject({
@@ -22,7 +23,7 @@ export const explanationSchema = z.strictObject({
   audited: z
     .boolean()
     .describe(
-      'Whether audit_route checks part of the criterion today. When false, an audit lists it in notChecked, and a person has to check all of it',
+      'Whether audit_route checks part of the criterion today, with axe-core or with a check of its own. When false, an audit lists it in notChecked, and a person has to check all of it',
     ),
   axeCoreRules: z
     .array(z.string())
@@ -35,9 +36,15 @@ export const explanationSchema = z.strictObject({
       'axe-core rules that audit_route runs for the criterion but that only mark an element for review, which audit_route does not report: what they look for is left for a person',
     ),
   ownCheck: z
-    .enum(['none', 'heuristic, not built yet', 'not built yet'])
+    .enum(['none', 'check', 'heuristic', 'not built yet', 'heuristic, not built yet'])
     .describe(
-      "The server's own check of the criterion, beyond axe-core. A heuristic gives candidates, some of them wrong, that a person confirms",
+      "The server's own check of the criterion, beyond axe-core: a check, or a heuristic, which gives candidates, some of them wrong, that a person confirms. The keyboard checks walk the page with Tab and Shift+Tab, and never activate anything",
+    ),
+  ownRule: z
+    .string()
+    .nullable()
+    .describe(
+      "The rule that names the findings of the server's own check, or null when none is built",
     ),
   class: z
     .enum(['automatic', 'semi-automatic'])
@@ -53,18 +60,19 @@ export const explanationSchema = z.strictObject({
 
 export type Explanation = z.infer<typeof explanationSchema>;
 
-const OWN_CHECK = {
-  'axe-core': 'none',
-  'own-check': 'not built yet',
-  heuristic: 'heuristic, not built yet',
-  'axe-core-and-heuristic': 'heuristic, not built yet',
-} as const satisfies Record<Criterion['decidedBy'], Explanation['ownCheck']>;
+/** The server's own check of a criterion, by how the catalog decides it and whether it is built. */
+function ownCheckOf(decidedBy: Criterion['decidedBy'], built: boolean): Explanation['ownCheck'] {
+  if (decidedBy === 'axe-core') return 'none';
+  if (decidedBy === 'own-check') return built ? 'check' : 'not built yet';
+  return built ? 'heuristic' : 'heuristic, not built yet';
+}
 
 /** The explanation of criterion `id`, or `undefined` when it is not one of the twelve. */
 export function explainCriterion(id: string): Explanation | undefined {
   const criterion = CRITERIA.find((each) => each.id === id);
   if (criterion === undefined) return undefined;
   const rules = auditedRules().filter(({ criteria }) => criteria.includes(id));
+  const ownRule = Object.entries(KEYBOARD_RULES).find(([, criterion]) => criterion === id)?.[0];
   return explanationSchema.parse({
     criterion: criterion.id,
     name: criterion.name,
@@ -72,12 +80,12 @@ export function explainCriterion(id: string): Explanation | undefined {
     requires: criterion.requires,
     resource: criterionResource(criterion.id),
     understanding: criterion.understanding,
-    // No own check is built yet, so only axe-core checks a criterion today, as the notChecked of
-    // an audit says. When the first own check arrives, `audited` has to count it too.
-    audited: rules.length > 0,
+    // As the notChecked of an audit that saw the whole page says.
+    audited: rules.length > 0 || ownRule !== undefined,
     axeCoreRules: rules.filter(({ reviewOnFail }) => !reviewOnFail).map(({ id: rule }) => rule),
     reviewOnlyRules: rules.filter(({ reviewOnFail }) => reviewOnFail).map(({ id: rule }) => rule),
-    ownCheck: OWN_CHECK[criterion.decidedBy],
+    ownCheck: ownCheckOf(criterion.decidedBy, ownRule !== undefined),
+    ownRule: ownRule ?? null,
     class: criterion.class,
     manual: criterion.manual,
   });

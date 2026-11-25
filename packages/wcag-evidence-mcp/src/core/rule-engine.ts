@@ -3,7 +3,8 @@
 // `LoadedPage.evaluateIsolated`, so its adapter never imports the browser's adapter.
 
 import * as z from 'zod';
-import type { LoadedPage } from './browser.ts';
+import { CLICK_EVENTS, STYLE_PROPERTIES, type LoadedPage } from './browser.ts';
+import type { ElementKey } from './element-key.ts';
 
 const pixels = z.number().finite();
 
@@ -81,10 +82,116 @@ export const failedChecksSchema = z
   })
   .describe('A rule without numbers to report: what the element lacks');
 
+// The measurements of the server's own keyboard checks (ADR 0007). Their values are numbers and
+// the server's own names: a changed style is named, never given its value, which can be page text.
+
+export const focusVisibleSchema = z
+  .strictObject({
+    kind: z
+      .literal('focus-visible')
+      .describe('A measurement of the focus indicator, with pixels (2.4.7)'),
+    key: z.literal('Tab').describe('The key that gave the element focus'),
+    focusVisible: z
+      .boolean()
+      .describe('Whether the element matched :focus-visible, which a key sets, once it had focus'),
+    reference: z
+      .enum(['load', 'leave'])
+      .describe(
+        'The capture without focus that the element was compared with: the page as it loaded, or, for an element outside the viewport or focused at load, the page once focus had left it',
+      ),
+    margin: pixels
+      .nonnegative()
+      .describe('How far around the element the comparison looked, in CSS pixels: 12'),
+    changedPixels: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe('How many pixels of the area changed with focus: none for a finding'),
+    threshold: z
+      .number()
+      .int()
+      .positive()
+      .describe(
+        'How much one of red, green or blue, from 0 to 255, has to differ for a pixel to count as changed: 10',
+      ),
+    changedProperties: z
+      .array(z.enum(STYLE_PROPERTIES))
+      .describe(
+        'The computed styles that changed with focus, on the element, its ancestors, its ::before and ::after, and the elements within 24 px. Names only, to explain the verdict: a change that draws nothing, such as an outline in the color of the background, can be listed',
+      ),
+  })
+  .describe('An element that Tab reaches with no visible change: no focus indicator');
+
+export const keyboardTrapSchema = z
+  .strictObject({
+    kind: z.literal('keyboard-trap').describe('A cycle of keyboard focus (2.1.2)'),
+    directions: z
+      .array(z.enum(['forward', 'backward']))
+      .min(1)
+      .describe('Forward is Tab, backward is Shift+Tab'),
+    stops: z.number().int().positive().describe('How many elements the cycle goes through'),
+    keys: z
+      .array(z.enum(['Tab', 'Shift+Tab', 'Escape']))
+      .min(1)
+      .describe(
+        'The keys tried, in order, in each direction: the key of the direction, Escape once, and the key again, which did not leave the cycle',
+      ),
+  })
+  .describe(
+    "Focus goes round a cycle of elements without passing through the page body, and Escape does not get it out. The finding's location is the first element of the cycle in document order; the others are only counted in stops",
+  );
+
+export const focusOrderSchema = z
+  .strictObject({
+    kind: z.literal('focus-order').describe('A jump back in the order of Tab (2.4.3)'),
+    upPx: pixels
+      .nonnegative()
+      .describe('How far up the element is from the one before it in the order, in CSS pixels'),
+    leftPx: pixels
+      .nonnegative()
+      .describe('How far left the element is from the one before it in the order, in CSS pixels'),
+    inversions: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe(
+        'Data on the whole page, not a finding: the pairs of elements that Tab reaches in the other order than reading, by rows and then from left to right',
+      ),
+    pairs: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe('How many pairs of elements Tab reached on the page, for inversions'),
+  })
+  .describe(
+    'Tab went from an element to this one, above it in the same column or left of it in the same row: the order may not follow the layout',
+  );
+
+export const clickNotReachableSchema = z
+  .strictObject({
+    kind: z
+      .literal('click-not-reachable')
+      .describe('An element that responds to a click and that Tab does not reach (2.1.1)'),
+    events: z
+      .array(z.enum(CLICK_EVENTS))
+      .min(1)
+      .describe('The events that the page listens to on the element'),
+    reached: z.boolean().describe('Whether Tab reached the element itself'),
+    ancestorReached: z.boolean().describe('Whether Tab reached an element that contains it'),
+    descendantReached: z.boolean().describe('Whether Tab reached an element inside it'),
+  })
+  .describe(
+    'An element with a listener of a click that Tab reaches neither on it nor around it: the function may need a mouse. In a finding, reached, ancestorReached and descendantReached are all false; they show what was checked',
+  );
+
 export const measurementSchema = z.discriminatedUnion('kind', [
   contrastSchema,
   targetSizeSchema,
   failedChecksSchema,
+  focusVisibleSchema,
+  keyboardTrapSchema,
+  focusOrderSchema,
+  clickNotReachableSchema,
 ]);
 
 /**
@@ -148,10 +255,20 @@ export const engineFindingSchema = z.strictObject({
   accessibleName: z.string().nullable(),
 });
 
+/** Where an element is, as a finding locates it: the engine's own fields of a finding. */
+export const elementLocationSchema = engineFindingSchema.pick({
+  selector: true,
+  rect: true,
+  documentIndex: true,
+  component: true,
+  element: true,
+});
+
 export type Rect = z.infer<typeof rectSchema>;
 export type Measurement = z.infer<typeof measurementSchema>;
 export type EngineFinding = z.infer<typeof engineFindingSchema>;
 export type Component = z.infer<typeof componentSchema>;
+export type ElementLocation = z.infer<typeof elementLocationSchema>;
 
 export interface RuleEngine {
   /** The name and version of the engine, such as `axe-core 4.14.0`. */
@@ -161,4 +278,13 @@ export interface RuleEngine {
    * it cannot read what the engine returned: the page could have changed it.
    */
   run(page: LoadedPage, rules: readonly string[]): Promise<readonly EngineFinding[]>;
+  /**
+   * Locates the elements of the registry of `element-key.ts` as the engine locates those of a
+   * finding: null for an element that is no longer in the page. The keyboard walk asks it at each
+   * stop, so the selector is that of the moment.
+   */
+  locate(
+    page: LoadedPage,
+    keys: readonly ElementKey[],
+  ): Promise<readonly (ElementLocation | null)[]>;
 }

@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest';
 import { auditedRules, auditRoute, fit, OUTPUT_CAP, type AuditOutput } from '../src/core/audit.ts';
 import { findingHash } from '../src/core/finding-id.ts';
 import type { EngineFinding } from '../src/core/rule-engine.ts';
-import { createBrowserDouble, createRuleEngineDouble, pageDouble } from './browser-double.ts';
+import type { BrowserPort, LoadedPage } from '../src/core/browser.ts';
+import {
+  createBrowserDouble,
+  createRuleEngineDouble,
+  emptyKeyboard,
+  pageDouble,
+} from './browser-double.ts';
 
 const URL_ASKED = 'http://localhost:4200/catalog';
 
@@ -184,15 +190,70 @@ describe('auditRoute', () => {
     expect(result.output.notChecked).toStrictEqual([]);
   });
 
-  it('says which criteria asked for no rule checks', async () => {
-    expect((await audit([])).notChecked).toStrictEqual(['2.1.2', '2.4.3', '2.4.7', '2.4.11']);
-    expect((await audit([], ['2.4.7', '1.1.1'])).notChecked).toStrictEqual(['2.4.7']);
+  it('says which criteria asked for no check covers', async () => {
+    expect((await audit([])).notChecked).toStrictEqual(['2.4.11']);
+    expect((await audit([], ['2.4.11', '1.1.1'])).notChecked).toStrictEqual(['2.4.11']);
+    expect((await audit([], ['2.4.7', '1.1.1'])).notChecked).toStrictEqual([]);
   });
+
+  it.each<[string, (use: (page: LoadedPage) => Promise<unknown>) => Promise<unknown>]>([
+    [
+      'a second visit that fails',
+      () => Promise.resolve({ ok: false, failure: { reason: 'timeout' } }),
+    ],
+    [
+      'a walk that throws',
+      (use) => {
+        const keyboard = { ...emptyKeyboard(), focused: () => Promise.reject(new Error('gone')) };
+        return use(pageDouble(null, undefined, keyboard)).then((value) => ({ ok: true, value }));
+      },
+    ],
+  ])(
+    'keeps the findings of axe-core after %s, with the keyboard criteria not checked',
+    async (_case, walk) => {
+      let visits = 0;
+      const browser = {
+        visit: (_url: string, use: (page: LoadedPage) => Promise<unknown>) => {
+          visits += 1;
+          return visits === 1
+            ? use(pageDouble()).then((value) => ({ ok: true, value }))
+            : walk(use);
+        },
+        close: () => Promise.resolve(),
+      } as BrowserPort;
+      const logged: string[] = [];
+      const result = await auditRoute(
+        {
+          browser,
+          engine: createRuleEngineDouble([found('image-alt', 'img', 1)]),
+          log: (line) => logged.push(line),
+        },
+        { url: URL_ASKED },
+      );
+      if (!result.ok) throw new Error('the audit failed');
+      // So that a bug in the walk does not pass for a page that was not checked.
+      expect(logged).toHaveLength(1);
+      expect(logged[0]).toMatch(
+        /^the keyboard walk (did not open the page: timeout|failed: Error: gone)$/,
+      );
+
+      expect(visits).toBe(2);
+      expect(result.output.findings.map(({ rule }) => rule)).toStrictEqual(['image-alt']);
+      expect(result.output.notChecked).toStrictEqual([
+        '2.1.1',
+        '2.1.2',
+        '2.4.3',
+        '2.4.7',
+        '2.4.11',
+      ]);
+    },
+  );
 
   it('throws when the engine reports a rule that it was not asked to run', async () => {
     const engine = {
       name: 'tampered 1.0.0',
       run: () => Promise.resolve([found('image-alt', 'img', 1)]),
+      locate: () => Promise.resolve([]),
     };
 
     await expect(

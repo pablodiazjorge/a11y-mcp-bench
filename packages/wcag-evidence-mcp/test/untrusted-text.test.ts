@@ -70,6 +70,7 @@ beforeAll(async () => {
     browser: createPlaywrightBrowser({ log: () => undefined }),
     engine: {
       name: engine.name,
+      locate: (page, keys) => engine.locate(page, keys),
       run: async (page, rules) => {
         const found = await engine.run(page, rules);
         read.set(new URL(page.url).pathname, found);
@@ -114,6 +115,8 @@ describe(
         'image-alt',
         'list',
         'color-contrast',
+        // The walk: the two small buttons, placed low on the page, come before elements above them.
+        'focus-order',
         'target-size',
         'target-size',
         'aria-allowed-attr',
@@ -215,6 +218,7 @@ describe(
         ['image-alt', 'ok'],
         ['list', null],
         ['color-contrast', null],
+        ['focus-order', null],
         ['target-size', null],
         ['target-size', null],
         ['aria-allowed-attr', null],
