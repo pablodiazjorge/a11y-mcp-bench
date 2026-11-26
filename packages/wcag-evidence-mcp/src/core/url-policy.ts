@@ -1,7 +1,8 @@
 // The URL policy (ADR 0005). `checkUrl` is its first layer: which URLs the server may open. It runs
 // before a page is opened, and the browser adapter runs it again on every request of the page,
 // which it can stop, and on every redirect hop, which it can only report. So an allowed URL must
-// also pass in the form that the parser writes it.
+// also pass in the form that the parser writes it. For the requests of a page, `checkRequest` and
+// `checkWebSocket` add the port rule of ADR 0009: writes go only to the page's own port.
 //
 // Many spellings reach the local machine: `127.1`, `0x7f.0.0.1`, `[::ffff:127.0.0.1]`,
 // `localhost.`, `shop.localhost`. The parser turns the numeric ones into `127.0.0.1`, keeps
@@ -76,6 +77,54 @@ export function checkUrl(text: string): UrlCheck {
   // anything else, so what follows the port in the text is already a path, a query or a fragment.
   if (!text.startsWith(`http://${url.hostname}:${url.port}`)) return refuse('not-as-written');
   return { allowed: true, url: url.href };
+}
+
+/**
+ * Why a request of the page is refused: a reason of `checkUrl`, or `other-port`, a request that can
+ * write, or a WebSocket, to a port other than the page's own (ADR 0009).
+ */
+export type RequestRejection = UrlRejection | 'other-port';
+
+export type RequestCheck =
+  | { readonly allowed: true; readonly url: string }
+  | { readonly allowed: false; readonly reason: RequestRejection };
+
+// The methods that read, and so may go to any allowed port. Compared exactly: the browser writes
+// these three in uppercase, and a server may read another spelling as another method.
+const READ_METHODS: readonly string[] = ['GET', 'HEAD', 'OPTIONS'];
+
+/**
+ * The port of a URL that the policy allows, such as the page's own document, or undefined for any
+ * other URL, such as `about:blank` before the page has a document.
+ */
+export function allowedPort(url: string): string | undefined {
+  const check = checkUrl(url);
+  return check.allowed ? new URL(check.url).port : undefined;
+}
+
+/**
+ * Checks a request of the page (ADR 0009): `checkUrl`, and then a method other than GET, HEAD or
+ * OPTIONS only to the page's own port. With no port of its own yet, the page can only read.
+ */
+export function checkRequest(
+  url: string,
+  method: string,
+  ownPort: string | undefined,
+): RequestCheck {
+  const check = checkUrl(url);
+  if (!check.allowed || READ_METHODS.includes(method)) return check;
+  return new URL(check.url).port === ownPort ? check : { allowed: false, reason: 'other-port' };
+}
+
+/**
+ * Checks a WebSocket of the page. It opens with a GET, but then carries writes, so it goes only to
+ * the page's own port (ADR 0009). Its URL is checked as the `http` URL with the same host, port and
+ * path, so `wss` is refused as `https` is.
+ */
+export function checkWebSocket(url: string, ownPort: string | undefined): RequestCheck {
+  const check = checkUrl(url.startsWith('ws:') ? `http:${url.slice('ws:'.length)}` : url);
+  if (!check.allowed) return check;
+  return new URL(check.url).port === ownPort ? check : { allowed: false, reason: 'other-port' };
 }
 
 // Chromium connects `localhost` to `::1` when a server listens there: first when it listens on both

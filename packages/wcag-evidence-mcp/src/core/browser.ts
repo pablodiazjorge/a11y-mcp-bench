@@ -2,17 +2,17 @@
 // adapter behind it applies the URL policy of ADR 0005 to the page and to every request it makes.
 
 import type { ElementKey } from './element-key.ts';
-import type { UrlRejection } from './url-policy.ts';
+import type { RequestRejection, UrlRejection } from './url-policy.ts';
 
-/** A request of the page that the URL policy refused. */
+/** A request of the page that the URL policy refused, with the port rule of ADR 0009. */
 export interface RefusedRequest {
   /** The URL as the browser wrote it. */
   readonly url: string;
-  readonly reason: UrlRejection;
+  readonly reason: RequestRejection;
   /**
    * `request` and `websocket` were stopped before they left the browser. A `redirect` hop cannot be
    * stopped, only seen: Chromium's resolver stops it when its host is not local, and a local hop
-   * that fails `checkUrl` reaches its destination.
+   * that fails `checkUrl`, or that carries a write to another port, reaches its destination.
    */
   readonly kind: 'request' | 'redirect' | 'websocket';
 }

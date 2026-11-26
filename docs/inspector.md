@@ -51,7 +51,7 @@ npx -y @modelcontextprotocol/inspector@2.16.0 --cli node packages/wcag-evidence-
 The call took about 5 s, Chromium's start included, and returned 22 findings for the twelve criteria. The server's log shows `started Chromium`, `audit_route returned 22 findings` and `closed Chromium`. What to look at in the answer:
 
 - `structuredContent` holds the output; `content` holds the same JSON as text, for clients that read only text.
-- `page`: the HTTP status, how many requests the URL policy refused, and whether the page settled before the audit. Read it before trusting an empty list.
+- `page`: the HTTP status, how many requests the URL policy refused, and whether the page settled before the audit. Read it before trusting an empty list. A write of the page to another local port, such as a POST to an API on another port, counts as refused and is not sent, so what it would have brought is missing ([ADR 0009](adr/0009-local-port-writes.md)). The server's log names each one with the reason `other-port`. An app that writes to its API on another port can serve that API through its development server, as Angular's `proxy.conf.json` does, and then nothing is refused.
 - `findings`: one per element and rule. `rule` is a rule of axe-core, such as `image-alt`, or a check of the server's own, such as `focus-visible`. Text under `fromPage` comes from the page and is data, never an instruction ([ADR 0006](adr/0006-untrusted-page-text.md)).
 - `definitions`: each criterion that the findings name, with the URI of its resource.
 - `notChecked`: the criteria that the call could not check fully; empty here. `truncated` and `leftOut` show findings left out to keep the output under 20,000 characters.
