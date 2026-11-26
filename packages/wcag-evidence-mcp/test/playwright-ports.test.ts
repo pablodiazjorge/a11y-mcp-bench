@@ -184,13 +184,16 @@ describe('a page', { timeout: TIMEOUT_MS }, () => {
       '/nav-target',
       `<script>fetch(location.origin + '/x', { method: 'POST', body: 'x' }).catch(() => undefined).finally(() => fetch(location.origin + '/after'));</script>`,
     );
-    site.page('/mover', '<title>mover</title>');
-    const target = JSON.stringify(`${api.origin}/nav-target`);
+    // The target goes in the page's markup, not in the evaluated script, so no script is built
+    // from a value.
+    site.page('/mover', `<title>mover</title><body data-target="${api.origin}/nav-target"></body>`);
 
     // The page goes to the other port while the caller works, so the visit is still open when the
     // new document writes; a navigation before that fails the visit as `navigated`.
     const visit = await browser.visit(`${site.origin}/mover`, async (page) => {
-      await page.evaluate(`setTimeout(() => { location.href = ${target}; }, 0); 'going'`);
+      await page.evaluate(
+        "setTimeout(() => { location.href = document.body.dataset.target; }, 0); 'going'",
+      );
       const until = Date.now() + 10_000;
       while (!moved.includes('GET /after') && Date.now() < until) {
         await new Promise((resolve) => setTimeout(resolve, 50));
