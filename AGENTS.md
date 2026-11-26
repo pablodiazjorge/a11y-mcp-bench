@@ -10,29 +10,30 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 
 ## Map
 
-| Path                                                                     | Content                                                                                                                         |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `README.md`, `README.es.md`                                              | What the project is, in English and in Spanish                                                                                  |
-| `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`                         | How to propose a change, how to report a vulnerability and what each release changes                                            |
-| `LICENSE`, `LICENSE-CC-BY-4.0`                                           | MIT for the code, CC BY 4.0 for the documents and the results                                                                   |
-| `docs/adr/`                                                              | Architecture decision records, one file per decision                                                                            |
-| `docs/architecture.md`                                                   | The parts of the repository, what each may depend on and how the boundaries are checked                                         |
-| `docs/wcag-2.2-scope.md`                                                 | The twelve WCAG 2.2 criteria that the server covers, how it decides each one and what is out of scope                           |
-| `docs/inspector.md`                                                      | How to run the server from a clone, call it with MCP Inspector and configure an MCP client                                      |
-| `package.json`, `package-lock.json`                                      | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package) |
-| `.npmrc`, `.nvmrc`                                                       | npm settings, including the minimum age of a dependency; the Node version for local work and the lockfile age job               |
-| `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |
-| `tsconfig.base.json`, `tsconfig.json`                                    | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                |
-| `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`               | Lint, format and test settings                                                                                                  |
-| `packages/wcag-evidence-mcp/`                                            | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`            |
-| `packages/wcag-evidence-mcp/scripts/`                                    | The generator that `npm run gen` runs to write `src/core/axe-rules.json`, the map of axe-core rules                             |
-| `packages/wcag-evidence-mcp/tools.contract.json`, `docs/tools.md`        | What the server shows an MCP client, and a readable reference made from it; both written by `npm run gen`                       |
-| `scripts/check-repo.ts`, `scripts/repo-checks.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks                                                 |
-| `scripts/check-lockfile-age.ts`                                          | Fails when the lockfile pins a version published less than seven days ago                                                       |
-| `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`               | The boundaries of ADRs 0003 and 0004 as dependency-cruiser rules, and the tests that each rule catches a forbidden import       |
-| `.github/workflows/`                                                     | CI on every pull request and every push to `main`, and the pull request title check                                             |
-| `.github/dependabot.yml`                                                 | Dependabot settings                                                                                                             |
-| `.github/pull_request_template.md`                                       | The three sections of a pull request description                                                                                |
+| Path                                                                      | Content                                                                                                                                             |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `README.md`, `README.es.md`                                               | What the project is, in English and in Spanish                                                                                                      |
+| `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`                          | How to propose a change, how to report a vulnerability and what each release changes                                                                |
+| `THREAT_MODEL.md`                                                         | What the server and the repository defend against, how, the test that shows each mitigation, and what remains                                       |
+| `LICENSE`, `LICENSE-CC-BY-4.0`                                            | MIT for the code, CC BY 4.0 for the documents and the results                                                                                       |
+| `docs/adr/`                                                               | Architecture decision records, one file per decision                                                                                                |
+| `docs/architecture.md`                                                    | The parts of the repository, what each may depend on and how the boundaries are checked                                                             |
+| `docs/wcag-2.2-scope.md`                                                  | The twelve WCAG 2.2 criteria that the server covers, how it decides each one and what is out of scope                                               |
+| `docs/inspector.md`                                                       | How to run the server from a clone, call it with MCP Inspector and configure an MCP client                                                          |
+| `package.json`, `package-lock.json`                                       | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package)                     |
+| `.npmrc`, `.nvmrc`                                                        | npm settings, including the minimum age of a dependency; the Node version for local work and the lockfile age job                                   |
+| `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`        | What git ignores, LF line endings, editor defaults and what Prettier skips                                                                          |
+| `tsconfig.base.json`, `tsconfig.json`                                     | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                                    |
+| `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`                | Lint, format and test settings                                                                                                                      |
+| `packages/wcag-evidence-mcp/`                                             | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`                                |
+| `packages/wcag-evidence-mcp/scripts/`                                     | The generator that `npm run gen` runs to write `src/core/axe-rules.json`, the map of axe-core rules                                                 |
+| `packages/wcag-evidence-mcp/tools.contract.json`, `docs/tools.md`         | What the server shows an MCP client, and a readable reference made from it; both written by `npm run gen`                                           |
+| `scripts/check-repo.ts`, `scripts/repo-checks*.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks, the tests that `THREAT_MODEL.md` cites and the pins of the actions |
+| `scripts/check-lockfile-age.ts`                                           | Fails when the lockfile pins a version published less than seven days ago                                                                           |
+| `.dependency-cruiser.js`, `scripts/module-boundaries.*.ts`                | The boundaries of ADRs 0003 and 0004 as dependency-cruiser rules, and the tests that each rule catches a forbidden import                           |
+| `.github/workflows/`                                                      | CI on every pull request and every push to `main`, and the pull request title check                                                                 |
+| `.github/dependabot.yml`                                                  | Dependabot settings                                                                                                                                 |
+| `.github/pull_request_template.md`                                        | The three sections of a pull request description                                                                                                    |
 
 ## Commands
 

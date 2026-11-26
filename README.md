@@ -30,7 +30,7 @@ A coding agent receives an Angular app with one accessibility defect planted on 
 | Harness        | The harness (the program that runs the agent on each task and records the result) and a small trial run (pilot) | [#8](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/8) |
 | Study 1        | Preregistration, runs, report; release v1.0.0                                                                   | [#9](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/9) |
 
-The parts and how they depend on each other are in [docs/architecture.md](docs/architecture.md).
+The parts and how they depend on each other are in [docs/architecture.md](docs/architecture.md), and what the server and the repository defend against is in [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## What it is not
 

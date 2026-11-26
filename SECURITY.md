@@ -1,5 +1,7 @@
 # Security policy
 
+Before reporting, see [THREAT_MODEL.md](THREAT_MODEL.md): what the server and the repository defend against, and the risks that the project accepts. A risk listed there as accepted or not mitigated is known.
+
 ## Reporting a vulnerability
 
 Report it in private, through [GitHub's private vulnerability reporting](https://github.com/pablodiazjorge/a11y-mcp-bench/security/advisories/new). Do not open a public issue for it.

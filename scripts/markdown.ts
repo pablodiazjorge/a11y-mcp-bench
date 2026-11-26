@@ -144,3 +144,23 @@ export function readMarkdown(text: string): MarkdownDocument {
   }
   return document;
 }
+
+export interface CodeSpan {
+  /** The text of the span, as GitHub shows it. */
+  content: string;
+  line: number;
+}
+
+/** Reads the code spans of a Markdown document, such as the tests that it cites. */
+export function readCodeSpans(text: string): CodeSpan[] {
+  const spans: CodeSpan[] = [];
+  for (const block of parser.parse(text, {})) {
+    if (block.type !== 'inline' || block.map === null) continue;
+    let line = block.map[0] + 1;
+    for (const token of block.children ?? []) {
+      if (token.type === 'code_inline') spans.push({ content: token.content, line });
+      else if (token.type === 'softbreak' || token.type === 'hardbreak') line++;
+    }
+  }
+  return spans;
+}

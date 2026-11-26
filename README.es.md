@@ -30,7 +30,7 @@ Un agente de programación recibe una aplicación Angular con un defecto de acce
 | Arnés                    | El arnés (el programa que ejecuta al agente en cada tarea y guarda el resultado) y una prueba piloto a pequeña escala | [#8](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/8) |
 | Estudio 1                | Prerregistro, ejecuciones e informe; publicación de la v1.0.0                                                         | [#9](https://github.com/pablodiazjorge/a11y-mcp-bench/issues/9) |
 
-Las partes y cómo dependen unas de otras están en [docs/architecture.md](docs/architecture.md).
+Las partes y cómo dependen unas de otras están en [docs/architecture.md](docs/architecture.md), y de qué se defienden el servidor y el repositorio, en [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Qué no es
 

@@ -531,6 +531,37 @@ describe('2.1.1 Keyboard', { timeout: TIMEOUT_MS }, () => {
 });
 
 describe('the walk', { timeout: TIMEOUT_MS }, () => {
+  it('presses only Tab, Shift+Tab and Escape: no click, typing or submission reaches the page', async () => {
+    // The page tells the test every event that it sees, through requests that it makes.
+    const events = new Set<string>();
+    site.handle('/events/log', (request, response) => {
+      events.add(new URL(request.url ?? '', site.origin).searchParams.get('e') ?? '');
+      response.writeHead(204).end();
+    });
+    site.page(
+      '/events',
+      `<!doctype html><html lang="en"><title>Events</title><button>Before</button><input aria-label="Field" value="typed"><a href="/events/elsewhere">Go</a>
+      <div id="region"><button id="a">A</button><button id="b">B</button></div><form action="/events/sent"><button>Send</button></form>
+      <script>
+        for (const type of ['keydown', 'beforeinput', 'input', 'change', 'click', 'mousedown', 'pointerdown', 'submit']) {
+          addEventListener(type, (event) => { new Image().src = '/events/log?e=' + type + ':' + (event.key ?? ''); }, true);
+        }
+        // A cycle that Escape breaks, so that the walk presses Escape once.
+        const a = document.getElementById('a'), b = document.getElementById('b');
+        let holding = true;
+        b.addEventListener('keydown', (e) => { if (holding && e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); a.focus(); } });
+        a.addEventListener('keydown', (e) => { if (holding && e.key === 'Tab' && e.shiftKey) { e.preventDefault(); b.focus(); } });
+        document.getElementById('region').addEventListener('keydown', (e) => { if (e.key === 'Escape') holding = false; });
+      </script></html>`,
+    );
+
+    const output = await audited('/events');
+
+    expect(selectors(output, 'keyboard-trap')).toStrictEqual([]);
+    expect(events).toStrictEqual(new Set(['keydown:Tab', 'keydown:Shift', 'keydown:Escape']));
+    expect(site.hits('/events/elsewhere') + site.hits('/events/sent')).toBe(0);
+  });
+
   it('goes through shadow roots and a frame, and reports nothing in the frame', async () => {
     const output = await audited('/frames.html');
 

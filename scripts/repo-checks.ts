@@ -8,6 +8,7 @@
 
 import { posix } from 'node:path';
 import { readMarkdown } from './markdown.ts';
+import { checkCitedTests, checkPinnedActions } from './repo-checks.evidence.ts';
 
 export interface Problem {
   file: string;
@@ -547,6 +548,8 @@ export function runChecks(files: PublishedFiles, options: CheckOptions): Problem
     ...checkSpanishStyle(files.texts),
     ...checkEnglishCode(files.texts),
     ...checkClaudeFile(files),
+    ...checkCitedTests(files),
+    ...checkPinnedActions(files.texts),
   ];
   const order = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
   return problems.sort(

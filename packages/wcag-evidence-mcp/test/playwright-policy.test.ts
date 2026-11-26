@@ -171,6 +171,29 @@ describe('the requests of a page', { timeout: TIMEOUT_MS }, () => {
     ]);
   });
 
+  it('are checked in a popup too, which opens in the same context', async () => {
+    const refusedUrl = `${site.origin}/popup-cut?q=${BACKSLASH}x`;
+    site.page(
+      '/popup-page',
+      `<script>window.open(${JSON.stringify(refusedUrl)}); window.open(${JSON.stringify(`${other.origin}/popup-away`)});</script>`,
+    );
+
+    // Long enough for both popups to ask for their pages.
+    const page = seen(
+      await look(
+        `${site.origin}/popup-page`,
+        "new Promise((resolve) => setTimeout(() => resolve('waited'), 1000))",
+      ),
+    );
+
+    expect(site.hits('/popup-cut')).toBe(0);
+    expect(other.hits('/popup-away')).toBe(0);
+    expect([...page.refused].sort((a, b) => a.url.localeCompare(b.url))).toStrictEqual([
+      { url: refusedUrl, reason: 'unusual-character', kind: 'request' },
+      { url: `${other.origin}/popup-away`, reason: 'host', kind: 'request' },
+    ]);
+  });
+
   it('cannot register a service worker', async () => {
     site.handle('/sw.js', (_request, response) => {
       response.writeHead(200, { 'content-type': 'text/javascript' });
