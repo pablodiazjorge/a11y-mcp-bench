@@ -286,6 +286,11 @@ describe('a page that was not opened', () => {
       { reason: 'browser-unavailable', message: `Executable doesn't exist at ${PLANTED}` },
       'The browser is not available: it could not be started, or it closed during the audit.',
     ],
+    [
+      'a browser that cannot start in its sandbox',
+      { reason: 'browser-unavailable', message: `No usable sandbox! ${PLANTED}`, sandbox: true },
+      "The browser could not start in its sandbox, which this system does not allow, as on Ubuntu 23.10 and later without user namespaces, in some containers or when the server runs as root. Running without the sandbox is the user's decision, not the agent's: whoever starts the server can set WCAG_EVIDENCE_MCP_NO_SANDBOX=1 in its environment, and a page that exploits a flaw of the browser could then run code on this machine.",
+    ],
   ])('is explained in the server words, without page text: %s', async (_case, failure, text) => {
     const session = await openSession('modern', MODERN_VERSION, {
       browser: {

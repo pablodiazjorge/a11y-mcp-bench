@@ -87,6 +87,16 @@ const ERROR_CASES: readonly ErrorCase[] = [
   },
   {
     request: 'tools/call audit_route',
+    when: 'The system does not allow the browser its sandbox',
+    params: auditRoute({ url: LOCAL_PAGE }),
+    browser: failingBrowser({
+      reason: 'browser-unavailable',
+      message: 'No usable sandbox!',
+      sandbox: true,
+    }),
+  },
+  {
+    request: 'tools/call audit_route',
     when: 'The result of axe-core cannot be read',
     params: auditRoute({ url: LOCAL_PAGE }),
     browser: createBrowserDouble(pageDouble()),

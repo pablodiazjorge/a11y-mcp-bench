@@ -47,6 +47,13 @@ jobs:
       - name: Install Chromium
         if: runner.os != 'Linux'
         run: npm run browser:install
+      # Chromium runs in its sandbox (ADR 0008), which on Linux needs unprivileged user namespaces.
+      # Ubuntu 23.10 and later restrict them through AppArmor, and Chromium then stops with "No
+      # usable sandbox" (read, not run here), so the runner allows them for the tests. The first
+      # run on Ubuntu shows whether this step is needed and enough.
+      - name: Allow the user namespaces of Chromium's sandbox
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm run ci:full
 
   lockfile-age:

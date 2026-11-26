@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { auditOutputSchema, auditRoute, CRITERION_IDS, type AuditPorts } from '../../core/audit.ts';
 import type { VisitFailure } from '../../core/browser.ts';
 import type { Log } from '../../core/log.ts';
+import { NO_SANDBOX_VARIABLE } from '../../core/sandbox.ts';
 
 export const AUDIT_ROUTE_TOOL = 'audit_route';
 
@@ -100,6 +101,8 @@ function explain(failure: VisitFailure, asked: string): string {
       return 'The page did not load, or the audit did not finish, within the time limit.';
     case 'browser-unavailable':
       // Playwright's message can hold a local path, with the name of the user account.
-      return 'The browser is not available: it could not be started, or it closed during the audit.';
+      return failure.sandbox === true
+        ? `The browser could not start in its sandbox, which this system does not allow, as on Ubuntu 23.10 and later without user namespaces, in some containers or when the server runs as root. Running without the sandbox is the user's decision, not the agent's: whoever starts the server can set ${NO_SANDBOX_VARIABLE}=1 in its environment, and a page that exploits a flaw of the browser could then run code on this machine.`
+        : 'The browser is not available: it could not be started, or it closed during the audit.';
   }
 }

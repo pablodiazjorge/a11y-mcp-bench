@@ -65,6 +65,7 @@ describe('Chromium', { timeout: TIMEOUT_MS }, () => {
           '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
         ],
         timeout: 30_000,
+        chromiumSandbox: true,
       },
     ]);
     expect(recorded.browsers[0]?.contexts()).toStrictEqual([]);
@@ -72,7 +73,7 @@ describe('Chromium', { timeout: TIMEOUT_MS }, () => {
     await browser.close();
 
     expect(recorded.browsers[0]?.isConnected()).toBe(false);
-    expect(logs[0]).toMatch(/^started Chromium \d+\./);
+    expect(logs[0]).toMatch(/^started Chromium \d+\.\S+ in its sandbox$/);
     expect(logs.at(-1)).toBe('closed Chromium');
   });
 
@@ -124,6 +125,65 @@ describe('Chromium', { timeout: TIMEOUT_MS }, () => {
     });
     expect(attempts).toBe(2);
   });
+
+  // The shape of the error of `playwright-core` 1.65.1 when Chromium exits at launch (read in its
+  // code): its own block under the browser logs, then Chromium's output in the call log.
+  const PLAYWRIGHT_BLOCK = [
+    'browserType.launch: Failed to launch the browser process.',
+    'Browser logs:',
+    '',
+    'Chromium sandboxing failed!',
+    '================================',
+    'To avoid the sandboxing issue, do either of the following:',
+    '  - (preferred): Configure your environment to support sandboxing',
+    "  - (alternative): Launch Chromium without sandbox using 'chromiumSandbox: false' option",
+    '================================',
+    '',
+  ];
+  const NAMESPACES =
+    '[pid=4242][err] [FATAL:zygote_host_impl_linux.cc(127)] No usable sandbox! Update your kernel.';
+  const ROOT =
+    '[pid=4242][err] [FATAL:zygote_host_impl_linux.cc(127)] Running as root without --no-sandbox is not supported.';
+  // Playwright dims its call log with terminal codes around all of its lines, so the first and the
+  // last line carry one.
+  const callLog = (...lines: string[]) => [
+    'Call log:',
+    `\u001b[2m${lines.map((line) => `  - ${line}`).join('\n')}\u001b[22m`,
+  ];
+  const EXITED = '[pid=4242] <process did exit: exitCode=null, signal=SIGTRAP>';
+
+  it.each([
+    ['without user namespaces', [...PLAYWRIGHT_BLOCK, ...callLog(NAMESPACES, EXITED)], NAMESPACES],
+    ['as root', [...PLAYWRIGHT_BLOCK, ...callLog('<launched> pid=4242', ROOT)], ROOT],
+    ['with no call log', PLAYWRIGHT_BLOCK, 'Chromium sandboxing failed!'],
+  ])(
+    'that cannot start in its sandbox, %s, fails the visit with the line that says why',
+    async (_case, lines, why) => {
+      const message = lines.join('\n');
+      const browser = createPlaywrightBrowser({
+        log: () => undefined,
+        launch: () => Promise.reject(new Error(message)),
+      });
+      const unsandboxed = createPlaywrightBrowser({
+        log: () => undefined,
+        sandbox: false,
+        launch: () => Promise.reject(new Error(message)),
+      });
+
+      expect(await title(browser)).toStrictEqual({
+        ok: false,
+        failure: { reason: 'browser-unavailable', message: why, sandbox: true },
+      });
+      // Without the sandbox asked for, those lines are no reason to blame it.
+      expect(await title(unsandboxed)).toStrictEqual({
+        ok: false,
+        failure: {
+          reason: 'browser-unavailable',
+          message: 'browserType.launch: Failed to launch the browser process.',
+        },
+      });
+    },
+  );
 });
 
 // Each limit is far below the other one and below the limit of a test, so a limit that does not

@@ -51,9 +51,9 @@ interface Server {
 }
 
 /** Starts the binary and kills it when the test ends, whatever its outcome. */
-function startServer(): Server {
+function startServer(extra: Readonly<Record<string, string>> = {}): Server {
   // The developer's NODE_OPTIONS could load hooks or flags into the child.
-  const env = { ...process.env };
+  const env = { ...process.env, ...extra };
   delete env.NODE_OPTIONS;
   // Node runs the TypeScript source directly by stripping its types, so no build is needed.
   const child = spawn(process.execPath, [BIN], {
@@ -138,3 +138,17 @@ function lines(text: string): string[] {
     .map((line) => line.replace(/\r$/, ''))
     .filter((line) => line !== '');
 }
+
+it.each(['', '0', 'true', 'yes', ' 1'])(
+  'refuses to start when the variable of the sandbox is %j, which is neither unset nor 1',
+  async (value) => {
+    const { output, closed } = startServer({ WCAG_EVIDENCE_MCP_NO_SANDBOX: value });
+
+    expect(await closed).toBe(2);
+    expect(output.stdout).toBe('');
+    expect(output.stderr).toContain(
+      '[wcag-evidence-mcp] WCAG_EVIDENCE_MCP_NO_SANDBOX must be unset, to run Chromium in its sandbox, or 1',
+    );
+  },
+  TIMEOUT_MS + 5_000,
+);
