@@ -89,6 +89,13 @@ The server is split into ports and adapters ([ADR 0004](adr/0004-server-architec
 
 `bin.ts` only wires the parts and runs in a child process, where coverage cannot see it, so it keeps the threshold of the whole repository: 70% of lines, functions and statements and 60% of branches.
 
+**The end-to-end tests.** Most tests drive the server in the same process, through the SDK's in-memory link. Two run it as a child process over stdio, on Ubuntu and Windows in CI:
+
+- `test/stdio.test.ts` runs the server from its TypeScript source and sends it raw JSON-RPC lines, for the framing and the exit codes.
+- `test/smoke.test.ts` runs the build, from the `bin` that `package.json` publishes, with the SDK's own client, through a whole session that starts Chromium and walks a page. It checks that stdout carries only protocol messages and that no process, Chromium's included, outlives the session.
+
+The second needs `npm run build` first, which `npm run ci` runs before the tests. Without the build or Chromium it fails, never skips, so a CI job that lacks them cannot pass in silence. It also fails when a file of the server's `src/` is newer than the build, as after a change that `npm test` alone would run against the old build.
+
 The core cannot import axe-core ([ADR 0004](adr/0004-server-architecture.md)), so the map is a generated file that the core reads. `npm run gen` writes it, `core/axe-rules.json`, from the installed axe-core with the generator in `packages/wcag-evidence-mcp/scripts/`. A test fails when the map no longer matches axe-core.
 
 ### The browser
