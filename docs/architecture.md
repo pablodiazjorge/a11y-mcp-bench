@@ -96,6 +96,8 @@ The server is split into ports and adapters ([ADR 0004](adr/0004-server-architec
 
 The second needs `npm run build` first, which `npm run ci` runs before the tests. Without the build or Chromium it fails, never skips, so a CI job that lacks them cannot pass in silence. It also fails when a file of the server's `src/` is newer than the build, as after a change that `npm test` alone would run against the old build.
 
+To run the server and call it by hand, see [Trying the server with MCP Inspector](inspector.md).
+
 The core cannot import axe-core ([ADR 0004](adr/0004-server-architecture.md)), so the map is a generated file that the core reads. `npm run gen` writes it, `core/axe-rules.json`, from the installed axe-core with the generator in `packages/wcag-evidence-mcp/scripts/`. A test fails when the map no longer matches axe-core.
 
 ### The browser

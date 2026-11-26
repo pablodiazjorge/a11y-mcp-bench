@@ -18,6 +18,7 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `docs/adr/`                                                              | Architecture decision records, one file per decision                                                                            |
 | `docs/architecture.md`                                                   | The parts of the repository, what each may depend on and how the boundaries are checked                                         |
 | `docs/wcag-2.2-scope.md`                                                 | The twelve WCAG 2.2 criteria that the server covers, how it decides each one and what is out of scope                           |
+| `docs/inspector.md`                                                      | How to run the server from a clone, call it with MCP Inspector and configure an MCP client                                      |
 | `package.json`, `package-lock.json`                                      | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package) |
 | `.npmrc`, `.nvmrc`                                                       | npm settings, including the minimum age of a dependency; the Node version for local work and the lockfile age job               |
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`       | What git ignores, LF line endings, editor defaults and what Prettier skips                                                      |

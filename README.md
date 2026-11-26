@@ -76,6 +76,8 @@ npm run browser:install
 npm run ci
 ```
 
+[docs/inspector.md](docs/inspector.md) shows how to run the server from a clone, call it by hand with MCP Inspector and add it to an MCP client.
+
 The rules for a change are in [AGENTS.md](AGENTS.md), and the way to propose one is in [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## How this is built
