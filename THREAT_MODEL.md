@@ -2,10 +2,11 @@
 
 What the MCP server `wcag-evidence-mcp` and the repository's supply chain defend against, how, and what is left. The threats of the benchmark come with the benchmark. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-**In short.** The server opens only pages served on this machine, keeps Chromium off the network beyond it, runs its own code where the page's scripts cannot reach it, and lets text of the page reach the agent only labeled, capped and cleaned. Each mitigation below cites the tests that show it, and the gate checks that those tests exist. Two risks are open, and their decisions are pending with the author:
+**In short.** The server opens only pages served on this machine, keeps Chromium off the network beyond it and in its sandbox, runs its own code where the page's scripts cannot reach it, and lets text of the page reach the agent only labeled, capped and cleaned. Each mitigation below cites the tests that show it, and the gate checks that those tests exist. One risk is open, and its decision is pending with the author:
 
-- **Chromium runs without its sandbox,** so a page that exploits a flaw of the browser runs code with the developer's rights ([below](#chromium-without-its-sandbox)).
 - **Local services on any port:** a hostile page or URL reaches every `http` service on this machine ([below](#requests-to-the-other-services-on-this-machine)).
+
+Where the system does not allow Chromium's sandbox, as in some containers or as root, whoever starts the server can turn it off, and a page that exploits a flaw of the browser then runs code with the rights of whoever started the server ([below](#chromiums-sandbox)).
 
 ## What is protected
 
@@ -44,7 +45,7 @@ flowchart LR
 ```
 
 1. **Client and server, over stdio.** The client is trusted. The server checks each input against its schema, writes only protocol messages to stdout and its log to stderr.
-2. **Server and Chromium.** The server starts Chromium with no network beyond this machine, talks to it over a pipe and opens each page in a context of its own.
+2. **Server and Chromium.** The server starts Chromium in its sandbox, with no network beyond this machine, talks to it over a pipe and opens each page in a context of its own.
 3. **The page and the isolated world.** The audit's code runs in an isolated world, a separate JavaScript context that Chromium gives to tools and extensions inside a page: it shares the page's DOM, but the page's scripts cannot change the JavaScript that it uses.
 4. **Page text and the output.** Text that the page wrote reaches the output only under `fromPage` keys, capped and cleaned, and the tool says that it is data.
 
@@ -229,15 +230,28 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 
 **What remains.** In a container with no init process, an orphaned child of Chromium stays as a zombie.
 
-### Chromium without its sandbox
+### Chromium's sandbox
 
-**Threat.** A page exploits a flaw of Chromium's renderer, the process that runs the page, and runs code outside the browser. The sandbox, the limits that the operating system puts on the browser's processes, is what normally contains such a flaw.
+**Threat.** A page exploits a flaw of Chromium's renderer, the process that runs the page, and runs code outside the browser. The sandbox, the limits that the operating system puts on the processes that run the page, is what normally contains such a flaw.
 
-**Mitigation: none.** `playwright-core` 1.65.1 passes `--no-sandbox` to Chromium unless the launch asks for `chromiumSandbox: true` (read in its code), and the server does not ask: a real launch of the server's browser had the flag (seen on 2026-11-25). The pinned Chromium is as recent as the pinned `playwright-core`, which the repository keeps at least 7 days old, so a flaw fixed upstream stays open until the next update.
+**Mitigation** ([ADR 0008](docs/adr/0008-chromium-sandbox.md)): Chromium runs the page in its sandbox: the renderers and the GPU process are inside it, and Chromium leaves its network service outside. `playwright-core` 1.65.1 turns the sandbox off with `--no-sandbox` unless the launch asks for it, and the server asks. Only `WCAG_EVIDENCE_MCP_NO_SANDBOX=1` in the server's environment turns it off; any other value stops the server at start, and the log says whether Chromium runs in its sandbox. Where the system does not allow the sandbox, the call fails with `browser-unavailable` and a sentence that names that variable, so the server never falls back to running without it.
 
-**No test:** the sandbox is not turned on. Turning it on is a decision pending with the author, since the sandbox needs support from the system, as unprivileged user namespaces on Linux.
+**Tests:**
 
-**What remains.** A page that exploits a flaw of the browser's renderer runs code with the developer's rights. The pages audited are usually the developer's own app, which lowers the chance, not the effect.
+- `packages/wcag-evidence-mcp/test/playwright-sandbox.test.ts > is on by default: the browser and its renderers have no --no-sandbox, and open a page`, which reads the command lines of the browser and of its renderers on each system of CI
+- `packages/wcag-evidence-mcp/test/playwright-sandbox.test.ts > is off only when asked: the browser and its renderers then have --no-sandbox`
+- `packages/wcag-evidence-mcp/test/sandbox.test.ts > refuses %j, without repeating it`
+- `packages/wcag-evidence-mcp/test/stdio.test.ts > refuses to start when the variable of the sandbox is %j, which is neither unset nor 1`
+- `packages/wcag-evidence-mcp/test/playwright-lifecycle.test.ts > that cannot start in its sandbox, %s, fails the visit with the line that says why`
+- `packages/wcag-evidence-mcp/test/server.test.ts > is explained in the server words, without page text: %s`, for a browser that cannot start in its sandbox
+
+**What remains:**
+
+- **The opt-out.** With `WCAG_EVIDENCE_MCP_NO_SANDBOX=1`, as in a container without user namespaces, a page that exploits a flaw of the browser's renderer runs code with the rights of whoever started the server. The log says so; it does not make it safe.
+- **Root.** Chromium does not run in its sandbox as root, so a server that runs as root needs the opt-out.
+- **The setting that Ubuntu needs.** On Ubuntu 23.10 and later, the sandbox needs `kernel.apparmor_restrict_unprivileged_userns=0`, which CI sets. It lifts, for every program on the machine, a restriction that Ubuntu adds because unprivileged user namespaces widen what a process can ask of the kernel. On CI's short-lived runners that is acceptable; on a developer's own machine it is a choice with that cost. An AppArmor profile for the browser alone is the narrower way, not tried.
+- **The network service** runs outside the sandbox, as Chromium leaves it.
+- **A flaw of the sandbox.** A page that exploits a flaw of the renderer and one of the sandbox gets out of both. The pinned Chromium is as recent as the pinned `playwright-core`, which the repository keeps at least 7 days old, so a flaw fixed upstream stays open until the next update.
 
 ### The supply chain
 

@@ -86,7 +86,7 @@ npx -y @modelcontextprotocol/inspector@2.16.0 --cli node packages/wcag-evidence-
 npx -y @modelcontextprotocol/inspector@2.16.0 node packages/wcag-evidence-mcp/dist/bin.js
 ```
 
-Inspector prints an address such as `http://127.0.0.1:6274` with a token, and opens it in the browser; with `MCP_AUTO_OPEN_ENABLED` set to `false`, it only prints it. It also listens on `127.0.0.1:6275`, for its sandbox. Ctrl+C in the terminal stops it. Environment variables that you add to a server in the UI are stored in the system's keychain or, where there is none, in `~/.mcp-inspector/secrets.json` without encryption (read in the code of Inspector 2.16.0), so put no secret there. In the page:
+Inspector prints an address such as `http://127.0.0.1:6274` with a token, and opens it in the browser; with `MCP_AUTO_OPEN_ENABLED` set to `false`, it only prints it. It also listens on `127.0.0.1:6275`, for what Inspector calls its sandbox, unrelated to Chromium's. Ctrl+C in the terminal stops it. Environment variables that you add to a server in the UI are stored in the system's keychain or, where there is none, in `~/.mcp-inspector/secrets.json` without encryption (read in the code of Inspector 2.16.0), so put no secret there. In the page:
 
 1. **Servers:** the switch next to `Disconnected` connects. The server shows `Connected` and `MCP 2025-11-25`, the protocol that Inspector chose.
 2. **Tools:** the list holds `Audit route` and `Explain criterion`, the second with the warning on its schema. Select `Audit route`, write `http://127.0.0.1:4573/` in `url`, and press `Execute Tool`: `Results` shows the output, `Structured Output` included. For `Explain criterion`, pick the criterion in its list.
@@ -98,12 +98,12 @@ The `Messages` panel lists each request and its answer.
 
 A call that fails returns `isError` with a sentence of the server's own, and the CLI exits with code 5. The server's log names the stable reason. The usual ones:
 
-| Reason in the log     | What the tool returns                                                                                                         | What to do                                                                                                                                                              |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `url-policy`          | `The URL is refused (scheme): only http://localhost or http://127.0.0.1 with an explicit port, …`, for `https://example.com/` | Serve the page on this machine and give its `http` URL with a port                                                                                                      |
-| `load-failed`         | `The page could not be loaded (ERR_CONNECTION_REFUSED). Check that the app is being served at that URL.`                      | Start the page's server, or fix the port                                                                                                                                |
-| `browser-unavailable` | `The browser is not available: it could not be started, or it closed during the audit.`                                       | Run `npm run browser:install`, or check `PLAYWRIGHT_BROWSERS_PATH`, the variable that tells Playwright where its browsers are ([see below](#configuring-an-mcp-client)) |
-| `timeout`             | `The page did not load, or the audit did not finish, within the time limit.`                                                  | Check that the page loads in a browser within 30 s                                                                                                                      |
+| Reason in the log     | What the tool returns                                                                                                         | What to do                                                                                                                                                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url-policy`          | `The URL is refused (scheme): only http://localhost or http://127.0.0.1 with an explicit port, …`, for `https://example.com/` | Serve the page on this machine and give its `http` URL with a port                                                                                                                                                                                            |
+| `load-failed`         | `The page could not be loaded (ERR_CONNECTION_REFUSED). Check that the app is being served at that URL.`                      | Start the page's server, or fix the port                                                                                                                                                                                                                      |
+| `browser-unavailable` | `The browser is not available: it could not be started, or it closed during the audit.`                                       | Run `npm run browser:install`, or check `PLAYWRIGHT_BROWSERS_PATH`, the variable that tells Playwright where its browsers are ([see below](#configuring-an-mcp-client)). When the sentence is about the sandbox, see [Chromium's sandbox](#chromiums-sandbox) |
+| `timeout`             | `The page did not load, or the audit did not finish, within the time limit.`                                                  | Check that the page loads in a browser within 30 s                                                                                                                                                                                                            |
 
 Each was observed:
 
@@ -113,6 +113,16 @@ Each was observed:
 - **`timeout`** with a server that accepts the request and never answers: the page has 30 s to load, and the call answered after about 32 s. A whole call, the keyboard walk included, has 2 minutes.
 
 The other errors, such as a page served from another address, are in [the reference of the tools](tools.md#errors).
+
+### Chromium's sandbox
+
+When Chromium cannot start in its sandbox, `browser-unavailable` comes with a sentence that says so and names the variable that turns the sandbox off, and the log keeps the line of Chromium, or else of Playwright, that says why. That case was not run here: a test gives it with an error shaped as Playwright's, read in its code. It happens ([ADR 0008](adr/0008-chromium-sandbox.md)):
+
+- **On Ubuntu 23.10 and later,** outside a container too, where AppArmor restricts the unprivileged user namespaces that the sandbox needs. `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` allows them, and lifts the restriction for every program until the machine restarts.
+- **In a container** without user namespaces.
+- **When the server runs as root.**
+
+Where the sandbox cannot run, `WCAG_EVIDENCE_MCP_NO_SANDBOX=1` turns it off ([see below](#configuring-an-mcp-client)). That is the user's decision, not the agent's.
 
 ## Configuring an MCP client
 
@@ -135,6 +145,7 @@ Claude Code reads this shape from a `.mcp.json` file at the root of the project 
 The settings that matter:
 
 - **`PLAYWRIGHT_BROWSERS_PATH`,** in the entry as `"env": { "PLAYWRIGHT_BROWSERS_PATH": "<folder>" }`, only when Chromium was installed somewhere other than Playwright's default folder: `%LOCALAPPDATA%\ms-playwright` on Windows, `~/.cache/ms-playwright` on Linux, or `~/Library/Caches/ms-playwright` on macOS, where the server was not tested. A client passes the server a small default environment, not all of yours, so a variable set only in your shell does not reach it.
+- **`WCAG_EVIDENCE_MCP_NO_SANDBOX`,** as `"env": { "WCAG_EVIDENCE_MCP_NO_SANDBOX": "1" }`, only where the system does not allow Chromium's sandbox, the limits that the operating system puts on the processes that run the page: on Ubuntu 23.10 and later, outside a container too, unless unprivileged user namespaces are allowed ([see above](#chromiums-sandbox)); in a container without them; or when the server runs as root. It turns the sandbox off, and a page that exploits a flaw of the browser could then run code on this machine ([ADR 0008](adr/0008-chromium-sandbox.md)). Unset keeps the sandbox; any value but `1` stops the server at start.
 - **The time limits** are fixed in the server: 30 s to load the page and 2 minutes for a whole call. No option changes them.
 
 The server has no other option or variable. A release on npm, planned for v0.1.0, is to let a client start it with `npx wcag-evidence-mcp` instead of `node` and a path; until then, it runs from a clone.

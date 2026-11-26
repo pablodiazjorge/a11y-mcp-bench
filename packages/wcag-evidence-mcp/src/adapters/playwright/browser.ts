@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { stripVTControlCharacters } from 'node:util';
 import {
   chromium,
   errors,
@@ -50,9 +51,18 @@ export interface PlaywrightBrowserOptions {
    * more than half of what is left of the visit.
    */
   readonly settleTimeoutMs?: number;
+  /** Whether Chromium runs in its sandbox (ADR 0008). True by default. */
+  readonly sandbox?: boolean;
   /** Starts Chromium. Tests pass their own, to keep a handle on the browser. */
   readonly launch?: (options: LaunchOptions) => Promise<Browser>;
 }
+
+// What Chromium writes when it cannot start in its sandbox: on Linux, when the system does not
+// allow the user namespaces that it needs, and when it runs as root. Playwright keeps that line in
+// the call log of its error, and puts a line of its own, the second pattern, in the browser logs
+// (read in `playwright-core` 1.65.1).
+const CHROMIUM_NO_SANDBOX = /No usable sandbox|as root without --no-sandbox/i;
+const PLAYWRIGHT_NO_SANDBOX = /Chromium sandboxing failed/i;
 
 /**
  * The browser adapter. Chromium starts on the first visit, so a server that never opens a page
@@ -66,14 +76,23 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
   const loadTimeoutMs = options.loadTimeoutMs ?? 30_000;
   const visitTimeoutMs = options.visitTimeoutMs ?? 120_000;
   const settleTimeoutMs = options.settleTimeoutMs ?? 10_000;
+  const sandbox = options.sandbox ?? true;
   let started: Promise<Browser> | undefined;
   let closed = false;
 
   function browser(): Promise<Browser> {
     if (started !== undefined) return started;
-    const starting = launch({ args: [...CHROMIUM_ARGS], timeout: launchTimeoutMs }).then(
+    // Playwright passes --no-sandbox unless it is asked for the sandbox.
+    const launching = {
+      args: [...CHROMIUM_ARGS],
+      timeout: launchTimeoutMs,
+      chromiumSandbox: sandbox,
+    };
+    const starting = launch(launching).then(
       (launched) => {
-        log(`started Chromium ${launched.version()}`);
+        log(
+          `started Chromium ${launched.version()} ${sandbox ? 'in its sandbox' : 'without its sandbox'}`,
+        );
         launched.on('disconnected', () => {
           if (started === starting) started = undefined;
         });
@@ -201,6 +220,17 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
         deadline = (since ?? Date.now()) + visitTimeoutMs;
         context = await running.newContext({ serviceWorkers: 'block', acceptDownloads: false });
       } catch (error) {
+        // Chromium's own line says why the sandbox failed, and Playwright's says only that it did;
+        // the first line of the error says neither.
+        const lines = String(error).split('\n');
+        const why =
+          lines.find((line) => CHROMIUM_NO_SANDBOX.test(line)) ??
+          lines.find((line) => PLAYWRIGHT_NO_SANDBOX.test(line));
+        if (sandbox && why !== undefined) {
+          // Playwright dims its call log with terminal codes, and starts each of its lines with a dash.
+          const message = stripVTControlCharacters(why).trim().replace(/^- /, '');
+          return failed({ reason: 'browser-unavailable', message, sandbox: true });
+        }
         return failed({ reason: 'browser-unavailable', message: firstLine(error) });
       }
       // At the limit, the visit stops waiting for the page and the caller, and closing the context

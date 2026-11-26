@@ -68,7 +68,7 @@ Comprobado el 12 de noviembre de 2026.
 
 ## Desarrollo
 
-Hacen falta Node 26 (o Node 24 a partir de la 24.15) y npm 11. El servidor y sus tests usan Chromium, que descarga `npm run browser:install`; en Linux, `npm run browser:install -- --with-deps` instala además las bibliotecas del sistema que necesita.
+Hacen falta Node 26 (o Node 24 a partir de la 24.15) y npm 11. El servidor y sus tests usan Chromium, que descarga `npm run browser:install`; en Linux, `npm run browser:install -- --with-deps` instala además las bibliotecas del sistema que necesita. Chromium se ejecuta dentro de su _sandbox_, el aislamiento que el sistema operativo impone a los procesos que ejecutan la página ([ADR 0008](docs/adr/0008-chromium-sandbox.md)). En Ubuntu 23.10 y posteriores, ese aislamiento necesita los espacios de nombres de usuario sin privilegios, que AppArmor restringe allí. La CI los permite con `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, que levanta la restricción para todos los programas hasta que se reinicia la máquina.
 
 ```bash
 npm ci

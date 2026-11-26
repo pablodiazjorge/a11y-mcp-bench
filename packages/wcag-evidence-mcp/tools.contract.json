@@ -908,6 +908,20 @@
     },
     {
       "request": "tools/call audit_route",
+      "when": "The system does not allow the browser its sandbox",
+      "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
+      "answer": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The browser could not start in its sandbox, which this system does not allow, as on Ubuntu 23.10 and later without user namespaces, in some containers or when the server runs as root. Running without the sandbox is the user's decision, not the agent's: whoever starts the server can set WCAG_EVIDENCE_MCP_NO_SANDBOX=1 in its environment, and a page that exploits a flaw of the browser could then run code on this machine."
+          }
+        ]
+      }
+    },
+    {
+      "request": "tools/call audit_route",
       "when": "The result of axe-core cannot be read",
       "params": { "name": "audit_route", "arguments": { "url": "http://localhost:4200/" } },
       "answer": {

@@ -229,8 +229,11 @@ export type VisitFailure =
   | { readonly reason: 'load-failed'; readonly message: string }
   /** The page did not load in time, or the whole visit took too long. */
   | { readonly reason: 'timeout' }
-  /** The browser could not be started, was closed, or closed or crashed during the visit. */
-  | { readonly reason: 'browser-unavailable'; readonly message: string };
+  /**
+   * The browser could not be started, was closed, or closed or crashed during the visit. `sandbox`
+   * is there when it could not start in its sandbox, which the system does not allow (ADR 0008).
+   */
+  | { readonly reason: 'browser-unavailable'; readonly message: string; readonly sandbox?: true };
 
 export type Visit<T> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly failure: VisitFailure };

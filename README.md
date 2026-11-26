@@ -68,7 +68,7 @@ Checked on 2026-11-12.
 
 ## Development
 
-You need Node 26 (or Node 24.15 or a later 24.x) and npm 11. The server and its tests drive Chromium, which `npm run browser:install` downloads; on Linux, `npm run browser:install -- --with-deps` also installs the system libraries it needs.
+You need Node 26 (or Node 24.15 or a later 24.x) and npm 11. The server and its tests drive Chromium, which `npm run browser:install` downloads; on Linux, `npm run browser:install -- --with-deps` also installs the system libraries it needs. Chromium runs in its sandbox, the limits that the operating system puts on the processes that run the page ([ADR 0008](docs/adr/0008-chromium-sandbox.md)). On Ubuntu 23.10 and later, the sandbox needs unprivileged user namespaces, which AppArmor restricts there. CI allows them with `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, which lifts the restriction for every program until the machine restarts.
 
 ```bash
 npm ci
