@@ -66,7 +66,7 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991,
-                "description": "How many requests of the page the URL policy refused, such as a stylesheet on another host: what they would have loaded is missing from the audit"
+                "description": "How many requests of the page the URL policy refused, such as a stylesheet on another host or a POST to another local port: what they would have loaded is missing from the audit"
               },
               "settled": {
                 "type": "boolean",

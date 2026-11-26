@@ -164,7 +164,7 @@ const pageSchema = z.strictObject({
     .int()
     .nonnegative()
     .describe(
-      'How many requests of the page the URL policy refused, such as a stylesheet on another host: what they would have loaded is missing from the audit',
+      'How many requests of the page the URL policy refused, such as a stylesheet on another host or a POST to another local port: what they would have loaded is missing from the audit',
     ),
   settled: z
     .boolean()

@@ -2,11 +2,10 @@
 
 What the MCP server `wcag-evidence-mcp` and the repository's supply chain defend against, how, and what is left. The threats of the benchmark come with the benchmark. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-**In short.** The server opens only pages served on this machine, keeps Chromium off the network beyond it and in its sandbox, runs its own code where the page's scripts cannot reach it, and lets text of the page reach the agent only labeled, capped and cleaned. Each mitigation below cites the tests that show it, and the gate checks that those tests exist. One risk is open, and its decision is pending with the author:
+**In short.** The server opens only pages served on this machine, keeps Chromium off the network beyond it and in its sandbox, lets a page write only to its own port, with the gaps listed below, runs its own code where the page's scripts cannot reach it, and lets text of the page reach the agent only labeled, capped and cleaned. Each mitigation below cites the tests that show it, and the gate checks that those tests exist. What stays open:
 
-- **Local services on any port:** a hostile page or URL reaches every `http` service on this machine ([below](#requests-to-the-other-services-on-this-machine)).
-
-Where the system does not allow Chromium's sandbox, as in some containers or as root, whoever starts the server can turn it off, and a page that exploits a flaw of the browser then runs code with the rights of whoever started the server ([below](#chromiums-sandbox)).
+- **Reads of local services:** a hostile page or URL still reaches every `http` service on this machine with a read (a GET, HEAD or OPTIONS), and a few paths that Playwright's interception does not see carry writes too ([below](#requests-to-the-other-services-on-this-machine)).
+- **Chromium without its sandbox,** where the system does not allow it, as on Ubuntu 23.10 and later without unprivileged user namespaces, in some containers or as root: whoever starts the server can turn the sandbox off, and a page that exploits a flaw of the browser then runs code with the rights of whoever started the server ([below](#chromiums-sandbox)).
 
 ## What is protected
 
@@ -89,15 +88,27 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 
 ### Requests to the other services on this machine
 
-**Threat.** The page's scripts send requests to another service on loopback, such as a development API with no authentication, while the agent audits the page. A hostile URL in the agent's input can also point the server at any of them, with one GET ([ADR 0005](docs/adr/0005-url-policy.md)).
+**Threat.** The page's scripts send requests to another service on loopback, such as a development API with no authentication, while the agent audits the page; a form-style POST is the usual way to make such a service act. A hostile URL in the agent's input can also point the server at any of them, with one GET ([ADR 0005](docs/adr/0005-url-policy.md)).
 
-**Mitigation.** Each visit gets a fresh context, with no cookies or storage of another visit, so a request carries no session of the developer. The policy allows only `http`.
+**Mitigation** ([ADR 0009](docs/adr/0009-local-port-writes.md)): a request other than GET, HEAD or OPTIONS, and a WebSocket, go only to the page's own port, that of the first document that its main frame commits, which never moves. The rule covers `fetch`, forms, `sendBeacon`, `fetch` with `keepalive`, frames, popups and dedicated workers, and each refusal counts in `refusedRequests`. Each visit gets a fresh context, with no cookies or storage of another visit, so a request carries no session of the developer. The policy allows only `http`.
 
 **Tests:**
 
+- `packages/wcag-evidence-mcp/test/playwright-ports.test.ts > reads from another local port, but every way it has to write there is cut`, where the other server receives no write
+- `packages/wcag-evidence-mcp/test/playwright-ports.test.ts > opens a WebSocket to its own port only`
+- `packages/wcag-evidence-mcp/test/playwright-ports.test.ts > keeps its own port when it goes to a document on another port, which cannot write there`
+- `packages/wcag-evidence-mcp/test/port-rule.test.ts > on %s, %j to %s gives %j`
+- `packages/wcag-evidence-mcp/test/port-rule.test.ts > lets a page with no document of its own yet only read`
 - `packages/wcag-evidence-mcp/test/playwright-policy.test.ts > gives each visit a context of its own, with no cookie or storage from another`
+- `packages/wcag-evidence-mcp/test/playwright-ports.test.ts > can still write to another port through a redirect of its own server, which is only seen`, which shows a gap below
 
-**What remains, not mitigated.** The policy allows every port of `localhost` and `127.0.0.1`. A service that trusts loopback without a credential, or acts on a GET, is exposed. Which ports to allow is a decision pending with the author.
+**What remains:**
+
+- **Reads** (GET, HEAD and OPTIONS) reach every port of `localhost` and `127.0.0.1`. A service that trusts loopback without a credential and acts on a read is exposed, to the page and to the agent's URL.
+- **CORS preflights:** while it intercepts, Playwright answers the browser's preflights itself (a 204 with the request's origin, methods and headers, and credentials allowed), and they never reach the service. So a request that a service on another port would have refused at its preflight is sent anyway: the port rule stops it for a write, not for a read with custom headers, such as a GET with `X-Csrf`. This dates from the route interception of ADR 0005, not from ADR 0009.
+- **A redirect that keeps its method:** a 307 or 308 from the page's own server carries a write to another port. The visit lists it; it does not stop it.
+- **The paths that the interception does not see:** the WebSockets of dedicated workers, the requests and WebSockets of shared workers, and speculation rules ([limits against ADR 0005](docs/architecture.md#limits-against-adr-0005)).
+- **Writes to the page's own port,** from its own scripts, as an app that saves a field when it loads.
 
 ### Instructions in the page's text
 

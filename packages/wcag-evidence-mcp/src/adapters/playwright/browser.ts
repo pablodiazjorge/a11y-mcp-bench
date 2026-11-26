@@ -18,7 +18,14 @@ import type {
   VisitFailure,
 } from '../../core/browser.ts';
 import type { Log } from '../../core/log.ts';
-import { checkUrl, isLocalAddress } from '../../core/url-policy.ts';
+import {
+  allowedPort,
+  checkRequest,
+  checkUrl,
+  checkWebSocket,
+  isLocalAddress,
+  type UrlRejection,
+} from '../../core/url-policy.ts';
 import { createKeyboardDriver, type IsolatedWorld } from './keyboard.ts';
 
 /**
@@ -113,32 +120,43 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
     deadline: number,
   ): Promise<Visit<LoadedPage>> {
     const refused: RefusedRequest[] = [];
-    let documentHop: RefusedRequest | undefined;
+    let documentHop: { readonly url: string; readonly reason: UrlRejection } | undefined;
     const refuse = (entry: RefusedRequest): void => {
       refused.push(entry);
       log(`refused a ${entry.kind} to ${entry.url}: ${entry.reason}`);
     };
+    // The interception below applies to this page as to every page of the context.
+    const page = await context.newPage();
+    // The page's own port (ADR 0009): that of the first document that its main frame commits,
+    // reached through the redirects that the policy allowed. It never moves: a later document, as
+    // after `location.href = …` to another port, fails the visit as `navigated`, and until then
+    // must not write to the port that it came from. Before the first document, the page only reads.
+    let own: string | undefined;
+    page.on('framenavigated', (frame) => {
+      if (own === undefined && frame === page.mainFrame()) own = allowedPort(frame.url());
+    });
+    const ownPort = (): string | undefined => own;
 
-    // The requests of the page, of its frames and of its dedicated workers. Not the hops of a
-    // redirect, nor the requests of a shared worker or of speculation rules: see "Limits against
-    // ADR 0005" in docs/architecture.md.
+    // The requests of the page, of its frames, of its popups and of its dedicated workers. Not the
+    // hops of a redirect, nor the requests of a shared worker or of speculation rules: see "Limits
+    // against ADR 0005" in docs/architecture.md.
     await context.route(
       () => true,
       (route) => {
-        const target = route.request().url();
-        const check = checkUrl(target);
+        const request = route.request();
+        const check = checkRequest(request.url(), request.method(), ownPort());
         if (check.allowed) return route.continue();
-        refuse({ url: target, reason: check.reason, kind: 'request' });
+        refuse({ url: request.url(), reason: check.reason, kind: 'request' });
         return route.abort('blockedbyclient');
       },
     );
     // The WebSockets of the page and its frames. Playwright does not see those of a worker, so the
-    // resolver rule is all that keeps them on the local machine.
+    // resolver rule is all that keeps them on the local machine, on any port.
     await context.routeWebSocket(
       () => true,
       (socket) => {
         const target = socket.url();
-        const check = checkUrl(asHttp(target));
+        const check = checkWebSocket(target, ownPort());
         if (check.allowed) {
           socket.connectToServer();
           return;
@@ -147,19 +165,19 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
         return socket.close({ code: 1008, reason: 'refused by the URL policy' });
       },
     );
-    const page = await context.newPage();
     const network = watchNetwork(context);
     const documents = await watchDocuments(context, page);
-    // A hop of a redirect is only reported, after the browser has asked for it.
+    // A hop of a redirect is only reported, after the browser has asked for it. A 307 or a 308
+    // keeps the method, so a hop can carry a write to another port.
     context.on('request', (request: Request) => {
       if (request.redirectedFrom() === null) return;
-      const check = checkUrl(request.url());
+      const url = request.url();
+      const check = checkRequest(url, request.method(), ownPort());
       if (check.allowed) return;
-      const entry: RefusedRequest = { url: request.url(), reason: check.reason, kind: 'redirect' };
-      refuse(entry);
-      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
-        documentHop ??= entry;
-      }
+      refuse({ url, reason: check.reason, kind: 'redirect' });
+      const toDocument = request.isNavigationRequest() && request.frame() === page.mainFrame();
+      if (toDocument && check.reason !== 'other-port')
+        documentHop ??= { url, reason: check.reason };
     });
 
     let response;
@@ -464,19 +482,11 @@ async function within<T, F>(promise: Promise<T>, ms: number, fallback: F): Promi
   }
 }
 
-/**
- * The policy allows a WebSocket exactly where it allows `http`, so a `ws` URL is checked as the
- * `http` URL with the same host, port and path. Any other scheme, `wss` included, is refused.
- */
-function asHttp(url: string): string {
-  return url.startsWith('ws:') ? `http:${url.slice('ws:'.length)}` : url;
-}
-
 function closedDuringVisit(): Visit<never> {
   return failed({ reason: 'browser-unavailable', message: 'the browser closed during the visit' });
 }
 
-function refusedHop(hop: RefusedRequest): Visit<never> {
+function refusedHop(hop: { readonly url: string; readonly reason: UrlRejection }): Visit<never> {
   return failed({ reason: 'url-policy', url: hop.url, rejection: hop.reason });
 }
 

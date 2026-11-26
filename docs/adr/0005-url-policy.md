@@ -1,6 +1,6 @@
 # 0005. URL policy: loopback only
 
-- **Status:** Accepted
+- **Status:** Accepted; its port rule is amended by [ADR 0009](0009-local-port-writes.md)
 - **Decided:** 2026-11-21
 
 ## Context
