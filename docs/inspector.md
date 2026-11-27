@@ -150,4 +150,4 @@ The settings that matter:
 
 The server has no other option or variable.
 
-The package `wcag-evidence-mcp` lets a client start the server with `npx`, as its [README](../packages/wcag-evidence-mcp/README.md) shows, instead of `node` and a path. It is not on npm until its first release, v0.1.0; until then, the server runs from a clone.
+Since v0.1.0, the package `wcag-evidence-mcp` on npm lets a client start the server with `npx`, as its [README](../packages/wcag-evidence-mcp/README.md) shows, instead of `node` and a path.

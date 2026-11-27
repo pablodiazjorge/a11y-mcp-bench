@@ -1,6 +1,6 @@
 {
   "name": "wcag-evidence-mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "An MCP server that audits a local web page for 12 WCAG 2.2 criteria and returns evidence for agents",
   "keywords": [
     "mcp",
