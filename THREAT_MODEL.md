@@ -273,6 +273,7 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 - exact versions: `.npmrc` sets `save-exact`, and the lockfile pins every package to one version;
 - no version published less than 7 days ago, for npm (`min-release-age=7`, checked on the lockfile by `npm run check:lockfile-age` in CI) and for GitHub Actions (`cooldown` in `.github/dependabot.yml`);
 - packages only from the npm registry: no git, URL, tarball or folder outside the repository;
+- no install script of a dependency runs: `.npmrc` sets `ignore-scripts=true`, and the repository checks fail without that line, or when a package of the lockfile has an install script and is not on their allowlist (today `fsevents`, for macOS only), which lets it be locked but does not run its script;
 - each action that a workflow or an action of the repository uses is pinned to a full commit SHA, or a Docker image to its digest;
 - Chromium only from Playwright, the build that the pinned `playwright-core` names;
 - no secret or personal data in a published file.
@@ -283,6 +284,10 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 - `scripts/check-lockfile-age.test.ts > reads the minimum age and the excluded packages`
 - `scripts/check-lockfile-age.test.ts > rejects a package that does not come from the npm registry`
 - `scripts/check-lockfile-age.test.ts > rejects %s`, the cases of `lockedVersions` with no plain exact version
+- `scripts/repo-checks.install.test.ts > reports an .npmrc without the setting, and a missing .npmrc`
+- `scripts/repo-checks.install.test.ts > reports a later line that would undo the setting, since npm keeps the last value`
+- `scripts/repo-checks.install.test.ts > reports a new package with an install script, nested or scoped, with its line`
+- `scripts/repo-checks.install.test.ts > reports a package under an allowed name that the lockfile records as another`
 - `scripts/repo-checks.evidence.test.ts > reports a tag, a branch, a short SHA, a reusable workflow on a branch and a Docker tag`
 - `scripts/repo-checks.evidence.test.ts > reports %s, which it does not read, rather than skip it`
 - `scripts/repo-checks.personal-data.test.ts > fails on a file with a personal path`
@@ -294,7 +299,10 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 **What remains:**
 
 - A compromised version older than 7 days passes.
-- `npm ci` runs the install scripts of the packages. Of the locked packages, only `fsevents` 2.3.3 has one, and it is installed only on macOS, as an optional development dependency. Whether to turn install scripts off (`ignore-scripts`) is a decision pending with the author.
+- **A user who installs the published package** runs the install scripts of its runtime dependencies, with that user's own npm settings and versions that npm resolves then, without this repository's lockfile or minimum age. Today none of the locked runtime packages has one (`@modelcontextprotocol/server`, `@modelcontextprotocol/core`, `axe-core`, `playwright-core` and `zod`), but a later version of one could add one.
+- **A script that `npm run` names** still runs, and so does the code of a dependency that a tool or the server loads: `ignore-scripts` stops only what npm runs on its own at install, around a script and at pack.
+- **Tools that the documents run with `npx`,** such as MCP Inspector in [docs/inspector.md](docs/inspector.md), install outside the lockfile, with no minimum age and no check of install scripts by this repository.
+- **The setting can be overridden** for one command, by `--ignore-scripts=false` or the `npm_config_ignore_scripts` environment variable, which take precedence over the project's `.npmrc`.
 - Chromium is downloaded from Playwright's servers with no checksum that this repository checks.
 
 ## Accepted risks and what is out of scope
