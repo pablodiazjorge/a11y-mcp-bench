@@ -27,6 +27,7 @@ import {
   type UrlRejection,
 } from '../../core/url-policy.ts';
 import { createKeyboardDriver, type IsolatedWorld } from './keyboard.ts';
+import { watchRedirects } from './redirects.ts';
 
 /**
  * The part of the second layer of the URL policy (ADR 0005) that lives in Chromium itself.
@@ -168,14 +169,12 @@ export function createPlaywrightBrowser(options: PlaywrightBrowserOptions): Brow
     const network = watchNetwork(context);
     const documents = await watchDocuments(context, page);
     // A hop of a redirect is only reported, after the browser has asked for it. A 307 or a 308
-    // keeps the method, so a hop can carry a write to another port.
-    context.on('request', (request: Request) => {
-      if (request.redirectedFrom() === null) return;
-      const url = request.url();
-      const check = checkRequest(url, request.method(), ownPort());
+    // keeps the method, so a hop can carry a write to another port. Each hop is listed once, but
+    // either source may mark it as the main document's (see redirects.ts).
+    await watchRedirects(context, page, documents.session, ({ url, method, toDocument }, isNew) => {
+      const check = checkRequest(url, method, ownPort());
       if (check.allowed) return;
-      refuse({ url, reason: check.reason, kind: 'redirect' });
-      const toDocument = request.isNavigationRequest() && request.frame() === page.mainFrame();
+      if (isNew) refuse({ url, reason: check.reason, kind: 'redirect' });
       if (toDocument && check.reason !== 'other-port')
         documentHop ??= { url, reason: check.reason };
     });
