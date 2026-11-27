@@ -216,12 +216,41 @@ describe('a page', { timeout: TIMEOUT_MS }, () => {
     site.page('/bouncer', '<title>bouncer</title>');
     const send = `fetch(${JSON.stringify(`${site.origin}/bounce`)}, { method: 'POST', body: 'x' }).then((response) => response.status, () => 'cut')`;
 
-    const page = await look('/bouncer', send);
+    const page = await look('/bouncer', send, 1);
 
     // Playwright's interception does not see the hops of a redirect (ADR 0005), and a 307 keeps
     // the method: the POST reaches the other port, and the visit reports it.
     expect(page.value).toBe(200);
     expect(bounced).toStrictEqual(['POST /bounced']);
     expect(listed(page.refused)).toStrictEqual([`redirect other-port ${api.origin}/bounced`]);
+  });
+
+  it('lists each of many hops through the same redirect once', async () => {
+    // With Playwright's event alone, this test failed in 13 of 20 runs here and in 7 of 10 in a
+    // review, each time on a missed hop (see redirects.ts). CDP also sees each hop, and each
+    // counts once.
+    const HOPS = 25;
+    const looped: string[] = [];
+    api.handle('/looped', recorder(looped));
+    site.handle('/loop', (_request, response) => {
+      response.writeHead(307, { location: `${api.origin}/looped` });
+      response.end();
+    });
+    site.page('/looper', '<title>looper</title>');
+    const send = `(async () => {
+      const statuses = [];
+      for (let count = 0; count < ${String(HOPS)}; count += 1) {
+        statuses.push(await fetch(${JSON.stringify(`${site.origin}/loop`)}, { method: 'POST', body: 'x' }).then((response) => response.status, () => 'cut'));
+      }
+      return statuses;
+    })()`;
+
+    const page = await look('/looper', send, HOPS);
+
+    expect(page.value).toStrictEqual(Array.from({ length: HOPS }, () => 200));
+    expect(looped).toHaveLength(HOPS);
+    expect(listed(page.refused)).toStrictEqual(
+      Array.from({ length: HOPS }, () => `redirect other-port ${api.origin}/looped`),
+    );
   });
 });
