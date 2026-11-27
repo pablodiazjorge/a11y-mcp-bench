@@ -35,7 +35,7 @@ Run them from a clean clone of `main`, at the commit to release. `<folder>` is a
 
    ```bash
    npx vitest run packages/wcag-evidence-mcp/test/package.test.ts   # fails if dist/ is older than src/, or ships other files
-   npm pack --workspace wcag-evidence-mcp --pack-destination <folder>   # the tarball that steps 4 and 5 stage
+   npm pack --workspace wcag-evidence-mcp --pack-destination <folder>   # the tarball that steps 5 and 6 stage
    ```
 
    Then, in `<folder>`, which fetches the dependencies from the registry:
@@ -47,7 +47,14 @@ Run them from a clean clone of `main`, at the commit to release. `<folder>` is a
    npx -y @modelcontextprotocol/inspector@2.16.0 --cli node node_modules/wcag-evidence-mcp/dist/bin.js --method tools/list   # lists audit_route and explain_criterion
    ```
 
-4. **Stage the package:** the tarball of step 3, which was checked and installed, so that npm uploads what was tested. `npm stage publish` takes a tarball, as `npm publish` does: its dry run did, with npm 11.20.0. From the root of the clone:
+4. **Tag the merged commit** and push the tag, before staging, so that the links of the package's README, which lead to the tag, work from the moment npm shows the package:
+
+   ```bash
+   git tag v<version>              # on the merge commit of the release pull request
+   git push origin v<version>      # the tag that the package's README links to
+   ```
+
+5. **Stage the package:** the tarball of step 3, which was checked and installed, so that npm uploads what was tested. `npm stage publish` takes a tarball, as `npm publish` does: its dry run did, with npm 11.20.0. From the root of the clone:
 
    ```bash
    npm login                                                            # as the account that will own the package
@@ -57,24 +64,35 @@ Run them from a clean clone of `main`, at the commit to release. `<folder>` is a
 
    For a new package, npm shows a public placeholder, `0.0.0-stage`, until the approval ([npm's documentation on staged publishing](https://docs.npmjs.com/staged-publishing)).
 
-5. **Review and approve** the staged package:
+6. **Review the staged package:**
 
    ```bash
    npm stage list wcag-evidence-mcp   # gives the stage id
    npm stage download <stage-id>      # to compare its files with the list of step 2
-   npm stage approve <stage-id>       # asks for the 2FA code and publishes
-   npm stage reject <stage-id>        # removes the staged package instead
    ```
 
-   The commands of steps 4 and 5 are read in npm's documentation and help; v0.1.0 is their first use in this project.
+   Then approve it, which asks for the 2FA code and publishes:
 
-6. **Check the release:** `npm view wcag-evidence-mcp version` gives the new version. Repeat the second block of step 3, in a new empty folder, with `npm install --ignore-scripts wcag-evidence-mcp@<version>` in place of the tarball.
+   ```bash
+   npm stage approve <stage-id>
+   ```
 
-7. **Tag the commit** `v<version>` and make its GitHub release, which the changelog's section links to. The links of the package's README lead to that tag.
+   Or, if its files are not those of step 2, reject it, which removes the staged package:
+
+   ```bash
+   npm stage reject <stage-id>
+   ```
+
+   The commands of steps 5 and 6 are read in npm's documentation and help; v0.1.0 is their first use in this project.
+
+7. **Check the release:** `npm view wcag-evidence-mcp version` gives the new version. Repeat the second block of step 3, in a new empty folder, with `npm install --ignore-scripts wcag-evidence-mcp@<version>` in place of the tarball.
+
+8. **Make the GitHub release** of the tag, which the changelog's section links to.
 
 ## If something goes wrong
 
 - **Staging fails:** stop and ask the author. Do not fall back to publishing with a token.
+- **The publish does not finish after the release pull request is merged:** the READMEs, the CHANGELOG and `docs/inspector.md` then say that the version is published when it is not. Finish the publish, or correct them in a follow-up pull request.
 - **A published version is wrong:** deprecate it with `npm deprecate wcag-evidence-mcp@<version> "<reason>"`, and publish a fixed version. npm allows an unpublish only within its limits ([npm's unpublish policy](https://docs.npmjs.com/policies/unpublish)).
 
 ## Later

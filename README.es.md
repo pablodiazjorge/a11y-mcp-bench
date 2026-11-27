@@ -8,7 +8,7 @@ Este repositorio tendrá un banco de pruebas que responda a esa pregunta y uno d
 
 ## Estado
 
-En sus inicios. Todavía no hay banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y el servidor con sus dos primeras herramientas: `audit_route`, que audita una página local con axe-core y recorriéndola con el teclado, y `explain_criterion`, que explica cualquiera de los doce criterios que abarca el servidor; la misma explicación es también un recurso. Su paquete, `wcag-evidence-mcp`, está preparado para npm, pero aún no se ha publicado: la v0.1.0 será su primera versión publicada.
+En sus inicios. Todavía no hay banco de pruebas que ejecutar: el repositorio tiene las herramientas de desarrollo, la integración continua (CI), las reglas del proyecto y el servidor con sus dos primeras herramientas: `audit_route`, que audita una página local con axe-core y recorriéndola con el teclado, y `explain_criterion`, que explica cualquiera de los doce criterios que abarca el servidor; la misma explicación es también un recurso. La v0.1.0 es la primera versión publicada del servidor, en npm como `wcag-evidence-mcp`: véase [su README](packages/wcag-evidence-mcp/README.md).
 
 ## Qué medirá
 
