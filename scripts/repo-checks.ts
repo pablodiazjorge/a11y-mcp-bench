@@ -9,6 +9,7 @@
 import { posix } from 'node:path';
 import { readMarkdown } from './markdown.ts';
 import { checkCitedTests, checkPinnedActions } from './repo-checks.evidence.ts';
+import { checkIgnoreScripts, checkInstallScripts } from './repo-checks.install.ts';
 
 export interface Problem {
   file: string;
@@ -550,6 +551,8 @@ export function runChecks(files: PublishedFiles, options: CheckOptions): Problem
     ...checkClaudeFile(files),
     ...checkCitedTests(files),
     ...checkPinnedActions(files.texts),
+    ...checkIgnoreScripts(files.texts),
+    ...checkInstallScripts(files.texts),
   ];
   const order = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
   return problems.sort(
