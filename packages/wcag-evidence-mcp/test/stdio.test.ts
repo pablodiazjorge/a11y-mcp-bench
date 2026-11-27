@@ -51,12 +51,15 @@ interface Server {
 }
 
 /** Starts the binary and kills it when the test ends, whatever its outcome. */
-function startServer(extra: Readonly<Record<string, string>> = {}): Server {
+function startServer(
+  extra: Readonly<Record<string, string>> = {},
+  args: readonly string[] = [],
+): Server {
   // The developer's NODE_OPTIONS could load hooks or flags into the child.
   const env = { ...process.env, ...extra };
   delete env.NODE_OPTIONS;
   // Node runs the TypeScript source directly by stripping its types, so no build is needed.
-  const child = spawn(process.execPath, [BIN], {
+  const child = spawn(process.execPath, [BIN, ...args], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env,
     timeout: TIMEOUT_MS,
@@ -148,6 +151,20 @@ it.each(['', '0', 'true', 'yes', ' 1'])(
     expect(output.stdout).toBe('');
     expect(output.stderr).toContain(
       '[wcag-evidence-mcp] WCAG_EVIDENCE_MCP_NO_SANDBOX must be unset, to run Chromium in its sandbox, or 1',
+    );
+  },
+  TIMEOUT_MS + 5_000,
+);
+
+it.each([[['--help']], [['install-browser', '--force']]])(
+  'refuses to start with the arguments %j, which it does not read',
+  async (args) => {
+    const { output, closed } = startServer({}, args);
+
+    expect(await closed).toBe(2);
+    expect(output.stdout).toBe('');
+    expect(output.stderr).toContain(
+      '[wcag-evidence-mcp] unknown arguments: run the binary with none to serve MCP over stdio',
     );
   },
   TIMEOUT_MS + 5_000,

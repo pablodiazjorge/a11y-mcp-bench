@@ -305,6 +305,32 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 - **The setting can be overridden** for one command, by `--ignore-scripts=false` or the `npm_config_ignore_scripts` environment variable, which take precedence over the project's `.npmrc`.
 - Chromium is downloaded from Playwright's servers with no checksum that this repository checks.
 
+### The published package
+
+**Threat.** The package on npm, `wcag-evidence-mcp`, reaches users with code that this repository did not build: a version published from a stolen account or token, files that were not meant to ship, or a package with a name like this one's.
+
+**Mitigation:**
+
+- the package ships only the built server, its README, its license and `package.json` (`files`), and a test compares that list with what `npm pack` would ship;
+- it is a binary only: `exports` is empty, so no other code imports its modules;
+- the first release goes by staged publishing, which a maintainer approves with two-factor authentication, and no publishing token is kept ([docs/releasing.md](docs/releasing.md)); later releases are to use trusted publishing from GitHub Actions, with provenance;
+- `mcpName` ties the package to the server's entry in the MCP registry, planned for v1.0;
+- agents never log in to npm or publish ([`AGENTS.md`](AGENTS.md)).
+
+**Tests:**
+
+- `packages/wcag-evidence-mcp/test/package.test.ts > ships the built server, its README, its license and package.json, and nothing else`
+- `packages/wcag-evidence-mcp/test/package.test.ts > is a binary only: importing it by name fails, as exports is empty`
+
+**No test** for the staged publishing, which npm applies.
+
+**What remains:**
+
+- **v0.1.0 has no provenance:** it is published from the author's machine, so nothing public ties the tarball to a commit of this repository.
+- **A name close to this one,** such as one letter off, can be published by anyone; a user who mistypes the name installs that package.
+- **Approval with 2FA** stops a stolen password, not a stolen npm session or a code that the author is tricked into giving.
+- **A client that runs `npx wcag-evidence-mcp` without a version** gets the latest one each time; the package's README pins the version in its example.
+
 ## Accepted risks and what is out of scope
 
 - **The MCP client, the model and the developer** are trusted. A model that follows an instruction in page text despite the labels is a risk that the output reduces, not one that it removes.
