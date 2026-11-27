@@ -20,12 +20,13 @@ So far the repository holds the tooling, continuous integration (CI), these rule
 | `docs/architecture.md`                                                    | The parts of the repository, what each may depend on and how the boundaries are checked                                                                              |
 | `docs/wcag-2.2-scope.md`                                                  | The twelve WCAG 2.2 criteria that the server covers, how it decides each one and what is out of scope                                                                |
 | `docs/inspector.md`                                                       | How to run the server from a clone, call it with MCP Inspector and configure an MCP client                                                                           |
+| `docs/releasing.md`                                                       | The steps that publish a release of the server to npm                                                                                                                |
 | `package.json`, `package-lock.json`                                       | Root of the npm workspaces (several packages in one repository) and the lockfile (the exact version of every installed package)                                      |
 | `.npmrc`, `.nvmrc`                                                        | npm settings, including the minimum age of a dependency and no install scripts; the Node version for local work and the lockfile age job                             |
 | `.gitignore`, `.gitattributes`, `.editorconfig`, `.prettierignore`        | What git ignores, LF line endings, editor defaults and what Prettier skips                                                                                           |
 | `tsconfig.base.json`, `tsconfig.json`                                     | TypeScript settings shared by every workspace, and the type check of the root `*.config.ts` files and `scripts/`                                                     |
 | `eslint.config.js`, `.prettierrc.json`, `vitest.config.ts`                | Lint, format and test settings                                                                                                                                       |
-| `packages/wcag-evidence-mcp/`                                             | The MCP server, shipped as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`                                                 |
+| `packages/wcag-evidence-mcp/`                                             | The MCP server, shipped to npm as a binary only: source in `src/`, tests in `test/`, compiled to `dist/` by `npm run build`, and the package's own `README.md`       |
 | `packages/wcag-evidence-mcp/scripts/`                                     | The generator that `npm run gen` runs to write `src/core/axe-rules.json`, the map of axe-core rules                                                                  |
 | `packages/wcag-evidence-mcp/tools.contract.json`, `docs/tools.md`         | What the server shows an MCP client, and a readable reference made from it; both written by `npm run gen`                                                            |
 | `scripts/check-repo.ts`, `scripts/repo-checks*.ts`, `scripts/markdown.ts` | Repository checks: personal data, secrets, links, bilingual documents, symlinks, the tests that `THREAT_MODEL.md` cites, the pins of the actions and install scripts |
@@ -44,6 +45,7 @@ npm run ci                   # the local gate: format, lint, types, repository c
 npm run ci:full              # the gate as CI runs it on each OS; CI also runs the lockfile age check
 npm run build                # only the server build, into packages/wcag-evidence-mcp/dist
 npm run gen                  # rewrite the generated files: the map of axe-core rules, the tool contract and docs/tools.md
+npm run release:check        # build the server, check the package that npm would publish and list its files (needs Chromium)
 npm run check:repo           # only the repository checks
 npm run check:deps           # only the module boundaries (the rules in .dependency-cruiser.js)
 npm run check:lockfile-age   # only the lockfile age check (needs network access to the npm registry)
@@ -53,7 +55,7 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
 ## Who does what
 
 - The author decides scope, architecture and anything that is hard to undo. Each of those decisions is recorded as an ADR (architecture decision record) in `docs/adr/`. An agent may draft it, and only the author accepts it.
-- Agents implement. They never commit, push, open or merge a pull request, create a tag or change the settings of the GitHub repository (rulesets, merge options, secrets, security features). They do not discard work either: no `git reset --hard`, no `git clean`, no deleted branch or stash. They leave the change ready, with a commit message and a pull request description, and the author does the rest.
+- Agents implement. They never commit, push, open or merge a pull request, create a tag, log in to npm or publish a package, or change the settings of the GitHub repository (rulesets, merge options, secrets, security features). They do not discard work either: no `git reset --hard`, no `git clean`, no deleted branch or stash. They leave the change ready, with a commit message and a pull request description, and the author does the rest.
 - Every change an agent writes passes three checks before it reaches `main`: the local gate (`npm run ci`), CI, and a review by an agent that did not write the change.
 - One change is one pull request, squash-merged (its commits become one commit on `main`).
 - The pull request title becomes that commit message, so it follows Conventional Commits: `type(scope): summary`, with an optional scope and the types allowed in `.github/workflows/pr-title.yml`.
@@ -77,15 +79,15 @@ npm run --silent deps:graph  # print the import graph of the code as a Mermaid d
 - No version published less than seven days ago, for npm packages (`min-release-age=7` in `.npmrc`) and GitHub Actions (`cooldown` in `.github/dependabot.yml`). Node is exempt: it follows the security releases of its LTS line, and `.nvmrc` is updated by hand.
   - `npm ci` ignores `min-release-age` and installs what the lockfile pins, so `npm run check:lockfile-age` checks the lockfile. CI runs it. Run it too when a change touches `package-lock.json`: `npm run ci` does not.
   - To exempt a package, add a `min-release-age-exclude[]=<name>` line to `.npmrc`, only with the author's approval, and give the reason in the pull request.
-- Install scripts, the code that a package runs when npm installs it, do not run: `.npmrc` sets `ignore-scripts=true`, so that a compromised package cannot run code at install. npm then runs no `preinstall`, `install`, `postinstall` or `prepare` script of a package, no `pre` or `post` script around `npm run`, and no lifecycle script of `npm pack` or `npm publish`, such as the server's `prepack`. A script that `npm run` names still runs.
+- Install scripts, the code that a package runs when npm installs it, do not run: `.npmrc` sets `ignore-scripts=true`, so that a compromised package cannot run code at install. npm then runs no `preinstall`, `install`, `postinstall` or `prepare` script of a package, no `pre` or `post` script around `npm run`, and no lifecycle script of `npm pack` or `npm publish`. A script that `npm run` names still runs.
   - `npm run check:repo` fails when `.npmrc` does not set it, and when a package of `package-lock.json` has an install script and is not on the allowlist in `scripts/repo-checks.install.ts` (today `fsevents`, for macOS only).
   - A dependency that needs its install script goes on the allowlist only with the author's approval, with the reason in the pull request. The allowlist only lets the package be locked: npm still skips its script, so a package that needs the script to work needs another decision.
-  - Since lifecycle scripts do not run, `npm pack` and `npm publish` do not run the server's `prepack`: run `npm run build` first. Do not rely on a `pre` or `post` script either.
+  - Since lifecycle scripts do not run, `npm pack` and `npm publish` build nothing: `npm run release:check` builds the server and checks the package first ([docs/releasing.md](docs/releasing.md)). Do not rely on a `pre` or `post` script either.
 - `.npmrc` stays plain ASCII: comment lines and `key=value` lines with a lowercase key and a bare value (letters, digits, spaces and `_ @ . / , -` only: no quotes, no URLs, no `${VAR}`). The lockfile age check reads it strictly and fails on anything else.
 - Dependencies come only from the npm registry. The lockfile age check fails on a dependency from git, a URL or a tarball, on a package that ships its own `npm-shrinkwrap.json`, on a workspace folder with `node_modules` in its name, and on a folder outside the repository, such as a `file:../lib` dependency.
   - The check cannot tell a `file:` dependency on a folder inside the repository from a workspace, so do not add one.
   - The check reads the lockfile, not the folders, so it cannot see where a symlink leads. Do not commit a symlink: `npm run check:repo` fails on one.
-- Chromium is the one download outside npm: `npm run browser:install` fetches, from Playwright's servers, the build that the pinned `playwright-core` names. Changing the version of `playwright-core` changes the browser too. Its age follows that of `playwright-core`, which the lockfile age check covers.
+- Chromium is the one download outside npm: `npm run browser:install`, and the package's `install-browser` subcommand, fetch, from Playwright's servers, the build that the pinned `playwright-core` names. Changing the version of `playwright-core` changes the browser too. Its age follows that of `playwright-core`, which the lockfile age check covers.
 
 ### TypeScript
 

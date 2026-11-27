@@ -2,6 +2,7 @@ import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 import { auditOutputSchema, auditRoute, CRITERION_IDS, type AuditPorts } from '../../core/audit.ts';
 import type { VisitFailure } from '../../core/browser.ts';
+import type { ServerIdentity } from '../../core/identity.ts';
 import type { Log } from '../../core/log.ts';
 import { NO_SANDBOX_VARIABLE } from '../../core/sandbox.ts';
 
@@ -30,8 +31,16 @@ const DESCRIPTION = [
   'When the output is truncated, leftOut gives the criteria to ask for to see more.',
 ].join(' ');
 
-/** Registers `audit_route`, which opens a local page and reports what fails on it. */
-export function registerAuditRouteTool(server: McpServer, ports: AuditPorts, log: Log): void {
+/**
+ * Registers `audit_route`, which opens a local page and reports what fails on it. `identity` names
+ * the package and version that install the browser of this server.
+ */
+export function registerAuditRouteTool(
+  server: McpServer,
+  ports: AuditPorts,
+  log: Log,
+  identity: ServerIdentity,
+): void {
   server.registerTool(
     AUDIT_ROUTE_TOOL,
     {
@@ -61,7 +70,7 @@ export function registerAuditRouteTool(server: McpServer, ports: AuditPorts, log
         // The log stays on this machine, so it keeps the browser's own message.
         const detail = 'message' in failure ? `: ${failure.message}` : '';
         log(`${AUDIT_ROUTE_TOOL} did not open the page: ${failure.reason}${detail}`);
-        return refusal(explain(failure, url));
+        return refusal(explain(failure, url, identity));
       }
       const { output } = result;
       log(`${AUDIT_ROUTE_TOOL} returned ${String(output.findings.length)} findings`);
@@ -83,7 +92,7 @@ function refusal(text: string): CallToolResult {
  * Says why the page was not opened, in the server's own words. Only the URL that the agent gave
  * is repeated: a redirect target or a browser message could carry text of the page.
  */
-function explain(failure: VisitFailure, asked: string): string {
+function explain(failure: VisitFailure, asked: string, identity: ServerIdentity): string {
   switch (failure.reason) {
     case 'url-policy':
       return failure.url === asked
@@ -103,6 +112,6 @@ function explain(failure: VisitFailure, asked: string): string {
       // Playwright's message can hold a local path, with the name of the user account.
       return failure.sandbox === true
         ? `The browser could not start in its sandbox, which this system does not allow, as on Ubuntu 23.10 and later without user namespaces, in some containers or when the server runs as root. Running without the sandbox is the user's decision, not the agent's: whoever starts the server can set ${NO_SANDBOX_VARIABLE}=1 in its environment, and a page that exploits a flaw of the browser could then run code on this machine.`
-        : 'The browser is not available: it could not be started, or it closed during the audit.';
+        : `The browser is not available: it could not be started, or it closed during the audit. If it is not installed, the user can install it with npx -y ${identity.name}@${identity.version} install-browser, or with npm run browser:install in a clone of the repository.`;
   }
 }

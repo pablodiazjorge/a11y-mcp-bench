@@ -27,6 +27,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "browser:install": "playwright-core install --only-shell --no-remove chromium",
+    "release:check": "npm run build && vitest run packages/wcag-evidence-mcp/test/package.test.ts packages/wcag-evidence-mcp/test/smoke.test.ts && npm pack --dry-run --workspace wcag-evidence-mcp",
     "check:lockfile-age": "node scripts/check-lockfile-age.ts",
     "check:repo": "node scripts/check-repo.ts",
     "check:deps": "depcruise .",

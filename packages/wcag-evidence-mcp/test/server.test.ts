@@ -284,7 +284,7 @@ describe('a page that was not opened', () => {
     [
       'no browser',
       { reason: 'browser-unavailable', message: `Executable doesn't exist at ${PLANTED}` },
-      'The browser is not available: it could not be started, or it closed during the audit.',
+      'The browser is not available: it could not be started, or it closed during the audit. If it is not installed, the user can install it with npx -y test-server@1.2.3 install-browser, or with npm run browser:install in a clone of the repository.',
     ],
     [
       'a browser that cannot start in its sandbox',

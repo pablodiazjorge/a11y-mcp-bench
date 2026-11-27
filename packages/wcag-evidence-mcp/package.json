@@ -1,18 +1,35 @@
 {
   "name": "wcag-evidence-mcp",
   "version": "0.0.0",
-  "private": true,
-  "description": "An MCP server that will audit a local web page for WCAG defects and return evidence a coding agent can act on.",
+  "description": "An MCP server that audits a local web page for 12 WCAG 2.2 criteria and returns evidence for agents",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "wcag-2.2",
+    "axe-core",
+    "playwright",
+    "angular"
+  ],
+  "homepage": "https://github.com/pablodiazjorge/a11y-mcp-bench/tree/main/packages/wcag-evidence-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/pablodiazjorge/a11y-mcp-bench/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pablodiazjorge/a11y-mcp-bench.git",
     "directory": "packages/wcag-evidence-mcp"
   },
+  "mcpName": "io.github.pablodiazjorge/wcag-evidence-mcp",
   "type": "module",
   "engines": {
     "node": "^24.15.0 || >=26.0.0"
   },
+  "exports": {},
   "bin": {
     "wcag-evidence-mcp": "dist/bin.js"
   },
@@ -21,8 +38,7 @@
   ],
   "scripts": {
     "build": "node -e \"process.getBuiltinModule('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
-    "gen": "node scripts/gen-axe-rules.ts",
-    "prepack": "npm run build"
+    "gen": "node scripts/gen-axe-rules.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
