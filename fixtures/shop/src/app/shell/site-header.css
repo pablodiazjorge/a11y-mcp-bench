@@ -1,0 +1,37 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-3);
+}
+
+.brand {
+  color: var(--color-text);
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.links {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The page that the link leads to is marked in more than color. */
+.current {
+  font-weight: 700;
+  text-decoration-thickness: 3px;
+}
