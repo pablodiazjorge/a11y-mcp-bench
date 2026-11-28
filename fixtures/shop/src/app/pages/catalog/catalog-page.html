@@ -1,2 +1,12 @@
 <h1>Catalog</h1>
-<p>This page is not built yet.</p>
+<app-load-state [status]="status()" what="products" [done]="count()" (retry)="products.reload()" />
+@if (list(); as products) {
+  <p>This page is not built yet.</p>
+  <ul>
+    @for (product of products; track product.id) {
+      <li>
+        <a [routerLink]="['/product', product.id]">{{ product.name }}</a>
+      </li>
+    }
+  </ul>
+}

@@ -1,2 +1,12 @@
-<h1>Product</h1>
-<p>This page is not built yet.</p>
+<h1>{{ heading() }}</h1>
+<app-load-state [status]="status()" what="product" (retry)="product.reload()" />
+@if (item(); as product) {
+  @for (picture of product.images; track picture.src) {
+    <img [src]="picture.src" [alt]="picture.alt" width="240" height="200" />
+  }
+  <p>{{ formatPrice(product.priceCents) }}</p>
+  <p>{{ product.description }}</p>
+  <p>This page is not built yet.</p>
+} @else if (notFound()) {
+  <p>The shop has no product at this address. <a routerLink="/catalog">Go to the catalog</a>.</p>
+}

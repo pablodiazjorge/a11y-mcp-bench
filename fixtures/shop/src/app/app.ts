@@ -1,10 +1,14 @@
 import { Component, DOCUMENT, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavigationFocus } from './shell/navigation-focus';
+import { StatusAnnouncer } from './shell/status-announcer';
 import { SiteFooter } from './shell/site-footer';
 import { SiteHeader } from './shell/site-header';
 
-/** The shell of every page: the skip link, the banner, the page itself and the footer. */
+/**
+ * The shell of every page: the skip link, the banner, the page itself, the footer and the app's one
+ * status region, which pages fill through StatusAnnouncer.
+ */
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, SiteHeader, SiteFooter],
@@ -13,6 +17,7 @@ import { SiteHeader } from './shell/site-header';
 })
 export class App {
   private readonly document = inject(DOCUMENT);
+  protected readonly announcer = inject(StatusAnnouncer);
 
   constructor() {
     inject(NavigationFocus).start();

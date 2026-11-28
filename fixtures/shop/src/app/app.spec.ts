@@ -1,15 +1,25 @@
+import { type HttpInterceptorFn, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { ApplicationInitStatus, ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
-import { provideRouter, Router, TitleStrategy } from '@angular/router';
+import { provideRouter, Router, TitleStrategy, withComponentInputBinding } from '@angular/router';
+import { Subject, switchMap, take } from 'rxjs';
 import { App } from './app';
+import { appConfig } from './app.config';
 import { routes } from './app.routes';
+import { MOCK_MODE, mockApiInterceptor } from './data/mock-api';
 import { ShopTitleStrategy } from './shell/shop-title-strategy';
 
 /** The shell at `url`, after its first navigation. */
-async function open(url: string) {
+async function open(url: string, interceptors: HttpInterceptorFn[] = []) {
   TestBed.configureTestingModule({
     imports: [App],
-    providers: [provideRouter(routes), { provide: TitleStrategy, useClass: ShopTitleStrategy }],
+    providers: [
+      provideRouter(routes, withComponentInputBinding()),
+      provideHttpClient(withInterceptors([...interceptors, mockApiInterceptor])),
+      { provide: MOCK_MODE, useValue: 'data' },
+      { provide: TitleStrategy, useClass: ShopTitleStrategy },
+    ],
   });
   const fixture = TestBed.createComponent(App);
   const router = TestBed.inject(Router);
@@ -21,7 +31,7 @@ async function open(url: string) {
     await router.navigateByUrl(next);
     await fixture.whenStable();
   };
-  return { page, router, go };
+  return { page, router, go, fixture };
 }
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -82,7 +92,7 @@ describe('the shell', () => {
 describe('the routes', () => {
   it.each([
     ['/catalog', 'Catalog - Shop', 'Catalog'],
-    ['/product/1', 'Product - Shop', 'Product'],
+    ['/product/leather-boots', 'Product - Shop', 'Leather boots'],
     ['/cart', 'Cart - Shop', 'Cart'],
     ['/checkout', 'Checkout - Shop', 'Checkout'],
     ['/no-such-page', 'Page not found - Shop', 'Page not found'],
@@ -128,5 +138,77 @@ describe('focus on navigation', () => {
     await go(next);
 
     expect(document.activeElement).toBe(link);
+  });
+});
+
+describe('the status region', () => {
+  it('is in the shell from the start, empty', () => {
+    TestBed.configureTestingModule({ imports: [App], providers: [provideRouter(routes)] });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const regions = (fixture.nativeElement as HTMLElement).querySelectorAll('[role="status"]');
+    expect(regions).toHaveLength(1);
+    expect(regions[0]?.textContent.trim()).toBe('');
+  });
+
+  it('says what the page loaded, and falls silent on a page with nothing to load', async () => {
+    const { page, go } = await open('/catalog');
+    const region = page.querySelector('[role="status"]');
+    expect(region?.textContent.trim()).toBe('16 products');
+
+    await go('/cart');
+
+    expect(page.querySelector('[role="status"]')).toBe(region);
+    expect(region?.textContent.trim()).toBe('');
+  });
+});
+
+describe('focus on a product page', () => {
+  it('stays on the heading while the product loads, and the heading then names it', async () => {
+    // Holds the product's answer until the test lets it go, as a slow answer would.
+    const answer = new Subject<void>();
+    const hold: HttpInterceptorFn = (request, next) =>
+      request.url.includes('/api/products/')
+        ? answer.pipe(
+            take(1),
+            switchMap(() => next(request)),
+          )
+        : next(request);
+    const { page, router, fixture } = await open('/catalog', [hold]);
+
+    await router.navigateByUrl('/product/leather-boots');
+    TestBed.inject(ApplicationRef).tick();
+    const heading = page.querySelector<HTMLElement>('main h1');
+    expect(heading?.textContent.trim()).toBe('Product');
+    expect(document.activeElement).toBe(heading);
+
+    answer.next();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(heading);
+    expect(heading?.textContent.trim()).toBe('Leather boots');
+  });
+});
+
+describe('the mock mode', () => {
+  it('is read when the app starts, before any page asks for data', async () => {
+    let reads = 0;
+    TestBed.configureTestingModule({
+      providers: [
+        ...appConfig.providers,
+        {
+          provide: MOCK_MODE,
+          useFactory: () => {
+            reads++;
+            return 'data';
+          },
+        },
+      ],
+    });
+
+    await TestBed.inject(ApplicationInitStatus).donePromise;
+
+    expect(reads).toBe(1);
   });
 });
