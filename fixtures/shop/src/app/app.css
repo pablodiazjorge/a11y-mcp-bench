@@ -46,3 +46,14 @@
 .main:focus {
   outline: none;
 }
+
+/* The status region is for screen readers; the pages show their own state. */
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}

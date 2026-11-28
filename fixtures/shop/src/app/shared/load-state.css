@@ -1,0 +1,24 @@
+:host {
+  display: block;
+  margin-block: var(--space-3);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.error .message {
+  color: var(--color-error);
+}
+
+.retry {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font: inherit;
+  cursor: pointer;
+}

@@ -1,0 +1,8 @@
+@if (status() === 'loading') {
+  <p class="message">Loading {{ what() }}…</p>
+} @else if (status() === 'error') {
+  <div class="error" role="alert">
+    <p class="message">The {{ what() }} could not be loaded.</p>
+    <button class="retry" type="button" (click)="retry.emit()">Try again</button>
+  </div>
+}
