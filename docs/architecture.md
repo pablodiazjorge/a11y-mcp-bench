@@ -54,6 +54,8 @@ Only `scripts`, `docs` and the server exist today: the server answers MCP reques
 | `scripts`                    | Repository checks                                                              | Nothing else in the repository                           | Yes          |
 | `docs`                       | ADRs and guides                                                                | Nothing (no code)                                        | Yes          |
 
+The reference app, in `fixtures/shop`, is decided in [ADR 0010](adr/0010-reference-app-architecture.md): its routes, building blocks, forms, mock API, Lighthouse budgets and tools. It arrives in the next pull requests.
+
 The tool contract, `packages/wcag-evidence-mcp/tools.contract.json`, is what the server shows an MCP client: see [The tool contract](#the-tool-contract). The harness reads it as a file and never imports the server's code.
 
 Each arrow is a dependency from the table above. A part with no arrow leaving it depends on no other part. `docs` holds no code and is not drawn.
