@@ -1,1 +1,77 @@
 /* The app's global styles: its theme is its own CSS, with no component library (ADR 0010). */
+
+/*
+ * The design tokens. src/app/design/contrast.spec.ts reads every --color-* token of this file,
+ * which must be written as #rrggbb, and checks the contrast of each pair of tokens that it lists:
+ * 4.5:1 for text on its background, and 3:1 for the edge of a control and for the focus
+ * indicator (WCAG AA). A token in no pair, or written another way, fails it. It checks the tokens,
+ * not the pairs that the CSS uses; those are checked when the app is audited, by axe-core's
+ * color-contrast rule.
+ */
+:root {
+  --color-background: #ffffff;
+  --color-surface: #f4f4f5;
+  --color-text: #18181b;
+  --color-text-muted: #52525b;
+  --color-link: #1d4ed8;
+  --color-accent: #1d4ed8;
+  --color-on-accent: #ffffff;
+  --color-border: #71717a;
+  --color-focus: #b45309;
+  --color-error: #b91c1c;
+
+  --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-large: 1.25rem;
+  --font-size-heading: 2rem;
+  --line-height: 1.5;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --content-width: 72rem;
+
+  --focus-width: 3px;
+  --focus-offset: 2px;
+  --duration: 150ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+}
+
+a {
+  color: var(--color-link);
+}
+
+/* One visible indicator for every element that the keyboard focuses, links and controls alike. */
+:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* Motion is short, and none at all for those who ask the system for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

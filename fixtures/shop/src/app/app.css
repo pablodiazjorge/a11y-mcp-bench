@@ -1,5 +1,48 @@
-/* Not empty, so that Angular emulates encapsulation and a finding names this component (ADR 0010);
-   scripts/repo-checks.app.ts checks it. */
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/*
+ * The skip link stays inside the viewport, clipped to a single pixel until it has focus, rather
+ * than moved off screen: an audit compares the page with and without its focus at the same place,
+ * so 2.4.7 is checked for it too (ADR 0010). Clipped to one pixel, not to nothing at its full size,
+ * since its box would otherwise lie over the shop's name, and an audit reads a box over an element
+ * as hiding it.
+ */
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 1;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--color-background);
+  color: var(--color-link);
+  clip-path: inset(50%);
+}
+
+.skip-link:focus {
+  width: auto;
+  height: auto;
+  padding: var(--space-2) var(--space-3);
+  overflow: visible;
+  clip-path: none;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-3);
+}
+
+/* The page's container takes focus only from the skip link and from code, and a ring around the
+   whole page would show nothing useful: Tab goes on from the top of its content. */
+.main:focus {
+  outline: none;
 }

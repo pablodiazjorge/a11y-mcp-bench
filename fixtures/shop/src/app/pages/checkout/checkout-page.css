@@ -1,0 +1,5 @@
+/* Not empty, so that Angular emulates encapsulation and a finding names this component (ADR 0010);
+   scripts/repo-checks.app.ts checks it. */
+:host {
+  display: block;
+}
