@@ -16,6 +16,13 @@ export const INSTALL_SCRIPT_ALLOWLIST: readonly string[] = [
   // macOS only, optional, and a dependency of a development tool; it builds nothing that the
   // tools here need.
   'fsevents',
+  // The Angular app's build (ADR 0010), approved by the author on 2026-11-26. Each ships its
+  // binaries in optional packages for each platform, or falls back without one, and the app
+  // builds and tests with their scripts skipped.
+  '@parcel/watcher',
+  'esbuild',
+  'lmdb',
+  'msgpackr-extract',
 ];
 
 const NPMRC = '.npmrc';

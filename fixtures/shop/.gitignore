@@ -1,0 +1,7 @@
+# The build, test output and Angular's cache, which the root's .gitignore also ignores. These lines
+# keep a copy of this folder clean on its own.
+/node_modules/
+/dist/
+/out-tsc/
+/coverage/
+/.angular/

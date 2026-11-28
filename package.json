@@ -32,7 +32,7 @@
     "check:repo": "node scripts/check-repo.ts",
     "check:deps": "depcruise .",
     "deps:graph": "depcruise . --include-only \"^(packages|fixtures|bench|scripts)/\" --output-type mermaid",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run check:repo && npm run check:deps && npm run build && npm run test:coverage",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run check:repo && npm run check:deps && npm run build && npm run test:coverage && npm run ci --workspace shop",
     "ci:full": "npm run ci"
   },
   "devDependencies": {

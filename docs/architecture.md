@@ -43,18 +43,18 @@ sequenceDiagram
 
 ## The parts
 
-Only `scripts`, `docs` and the server exist today: the server answers MCP requests and has two tools, `audit_route` and `explain_criterion`, and one resource for each of its twelve criteria. The [roadmap](../README.md#roadmap) says when each of the others arrives.
+Only `scripts`, `docs`, the server and the first files of the app exist today: the server answers MCP requests and has two tools, `audit_route` and `explain_criterion`, and one resource for each of its twelve criteria. The [roadmap](../README.md#roadmap) says when each of the others arrives.
 
 | Path                         | Part                                                                           | Depends on                                               | Exists today |
 | ---------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- | ------------ |
 | `packages/wcag-evidence-mcp` | The MCP server, which is published on its own                                  | Nothing else in the repository                           | One tool     |
-| `fixtures/shop`              | The reference Angular app and its unit tests                                   | Nothing else in the repository                           | No           |
+| `fixtures/shop`              | The reference Angular app and its unit tests                                   | Nothing else in the repository                           | A scaffold   |
 | `fixtures/defects`           | One folder per seeded defect: a patch, its metadata and its test               | `fixtures/shop`, as the target of the patches            | No           |
 | `bench`                      | The harness (runner, grader, statistics, report), preregistrations and results | The two fixtures and the server's tool contract, as data | No           |
 | `scripts`                    | Repository checks                                                              | Nothing else in the repository                           | Yes          |
 | `docs`                       | ADRs and guides                                                                | Nothing (no code)                                        | Yes          |
 
-The reference app, in `fixtures/shop`, is decided in [ADR 0010](adr/0010-reference-app-architecture.md): its routes, building blocks, forms, mock API, Lighthouse budgets and tools. It arrives in the next pull requests.
+The reference app, in `fixtures/shop`, follows [ADR 0010](adr/0010-reference-app-architecture.md): its routes, building blocks, forms, mock API, Lighthouse budgets and tools. Today it is a scaffold, an npm workspace with Angular 22.3 and one placeholder page; its pages arrive in the next pull requests. It has its own toolchain, since the root's rules forbid the decorators that Angular needs. The Angular CLI builds it and runs its unit tests with the root's Vitest. Its own ESLint configuration, `fixtures/shop/eslint.config.mjs`, lints it with Angular's template accessibility rules, and its own `tsconfig.json` sets its TypeScript. `npm run ci` ends with `npm run ci --workspace shop`, the app's own gate: lint, type check, build and unit tests.
 
 The tool contract, `packages/wcag-evidence-mcp/tools.contract.json`, is what the server shows an MCP client: see [The tool contract](#the-tool-contract). The harness reads it as a file and never imports the server's code.
 
