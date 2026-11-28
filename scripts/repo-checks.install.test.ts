@@ -64,7 +64,7 @@ describe('checkInstallScripts', () => {
       '': { name: 'root' },
       'node_modules/fsevents': { version: '2.3.3', hasInstallScript: true, optional: true },
       'node_modules/zod': { version: '4.6.7' },
-      'node_modules/esbuild': { version: '0.25.0', hasInstallScript: false },
+      'node_modules/native-addon': { version: '1.0.0', hasInstallScript: false },
     });
 
     expect(checkInstallScripts(texts)).toEqual([]);
@@ -72,12 +72,12 @@ describe('checkInstallScripts', () => {
 
   it('reports a new package with an install script, nested or scoped, with its line', () => {
     const texts = lockfile({
-      'node_modules/esbuild': { version: '0.25.0', hasInstallScript: true },
+      'node_modules/native-addon': { version: '1.0.0', hasInstallScript: true },
       'node_modules/a/node_modules/@scope/native': { version: '1.0.0', hasInstallScript: true },
     });
 
     expect(report(checkInstallScripts(texts))).toEqual([
-      notAllowed(4, 'esbuild'),
+      notAllowed(4, 'native-addon'),
       notAllowed(8, '@scope/native'),
     ]);
   });

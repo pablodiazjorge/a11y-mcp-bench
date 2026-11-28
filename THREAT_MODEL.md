@@ -274,7 +274,7 @@ DNS rebinding, a name that resolves first to this machine and then elsewhere, do
 - exact versions: `.npmrc` sets `save-exact`, and the lockfile pins every package to one version;
 - no version published less than 7 days ago, for npm (`min-release-age=7`, checked on the lockfile by `npm run check:lockfile-age` in CI) and for GitHub Actions (`cooldown` in `.github/dependabot.yml`);
 - packages only from the npm registry: no git, URL, tarball or folder outside the repository;
-- no install script of a dependency runs: `.npmrc` sets `ignore-scripts=true`, and the repository checks fail without that line, or when a package of the lockfile has an install script and is not on their allowlist (today `fsevents`, for macOS only), which lets it be locked but does not run its script;
+- no install script of a dependency runs: `.npmrc` sets `ignore-scripts=true`, and the repository checks fail without that line, or when a package of the lockfile has an install script and is not on their allowlist (today `fsevents`, for macOS only, and four packages of the app's build, each approved by the author), which lets it be locked but does not run its script;
 - each action that a workflow or an action of the repository uses is pinned to a full commit SHA, or a Docker image to its digest;
 - Chromium only from Playwright, the build that the pinned `playwright-core` names;
 - no secret or personal data in a published file.

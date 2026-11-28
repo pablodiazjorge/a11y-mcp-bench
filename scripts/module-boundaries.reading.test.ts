@@ -3,10 +3,12 @@
 // and an import that leads nowhere is reported. The forbidden imports of each rule are in
 // module-boundaries.test.ts.
 
+import { cruise } from 'dependency-cruiser';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   BY_NAME,
   cruiseTree,
+  loadOptions,
   GENERATED_FILES,
   LAYOUT,
   removeTrees,
@@ -165,5 +167,16 @@ describe('what the module boundaries read', { timeout: 60_000 }, () => {
     expect(violations(result)).toEqual([]);
     const finding = result.modules.find(({ source }) => source === `${SERVER}/src/core/finding.ts`);
     expect(finding?.dependencies.map(({ resolved }) => resolved)).toContain(`${nested}/index.js`);
+  });
+
+  it('reads the real app, whose Angular packages are imports by name, and lets them through', async () => {
+    const { output } = await cruise(['fixtures/shop'], await loadOptions());
+    if (typeof output === 'string') throw new Error('expected the result as an object');
+
+    expect(violations(output)).toEqual([]);
+    const app = output.modules.find(({ source }) => source === 'fixtures/shop/src/app/app.ts');
+    const core = app?.dependencies.find(({ module }) => module === '@angular/core');
+    expect(core?.dependencyTypes).toContain('npm');
+    expect(core?.couldNotResolve).toBe(false);
   });
 });
